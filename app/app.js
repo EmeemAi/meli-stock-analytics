@@ -145,6 +145,7 @@ function initEventListeners() {
     });
   });
 
+  // ASISTENTE IA GEMINI CONTROLES
   initAiAssistantControls();
 
   const modal = document.getElementById('configModal');
