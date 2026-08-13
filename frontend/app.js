@@ -16,7 +16,7 @@ const state = {
   },
   activeFilter: 'ALL',
   searchQuery: '',
-  gasUrl: localStorage.getItem('MELI_GAS_URL') || DEFAULT_ENDPOINT,
+  gasUrl: DEFAULT_ENDPOINT,
   charts: {
     status: null,
     topSuggested: null
@@ -24,6 +24,14 @@ const state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Limpiar cualquier URL vacía guardada previamente en el navegador
+  const savedUrl = localStorage.getItem('MELI_GAS_URL');
+  if (savedUrl && savedUrl.trim() !== '') {
+    state.gasUrl = savedUrl.trim();
+  } else {
+    state.gasUrl = DEFAULT_ENDPOINT;
+  }
+
   initEventListeners();
   loadData();
 });
@@ -84,8 +92,8 @@ function initEventListeners() {
   });
 
   document.getElementById('btnUseMock').addEventListener('click', () => {
-    state.gasUrl = '';
-    localStorage.removeItem('MELI_GAS_URL');
+    state.gasUrl = 'mock-data.json';
+    localStorage.setItem('MELI_GAS_URL', 'mock-data.json');
     modal.classList.remove('active');
     loadData();
   });
@@ -97,7 +105,11 @@ async function loadData() {
   const syncText = document.getElementById('lastSyncText');
   syncText.textContent = 'Cargando publicaciones reales de MeLi...';
 
-  const fetchUrl = state.gasUrl || DEFAULT_ENDPOINT;
+  let fetchUrl = state.gasUrl;
+  if (!fetchUrl || fetchUrl.trim() === '') {
+    fetchUrl = DEFAULT_ENDPOINT;
+    state.gasUrl = DEFAULT_ENDPOINT;
+  }
 
   try {
     const response = await fetch(fetchUrl);
