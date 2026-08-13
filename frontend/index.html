@@ -14,7 +14,7 @@
   <!-- Chart.js CDN para gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=40.0">
+  <link rel="stylesheet" href="styles.css?v=50.0">
 </head>
 <body>
   <div class="app-container">
@@ -75,7 +75,7 @@
           <span class="kpi-title">Valor Total del Inventario</span>
           <div class="kpi-icon">💰</div>
         </div>
-        <div class="kpi-value" id="kpiTotalValuation">$ 25.105.000</div>
+        <div class="kpi-value" id="kpiTotalValuation">$ 3.449.600</div>
         <div class="kpi-subtext">Capital total inmovilizado ($ ARS)</div>
       </div>
 
@@ -84,7 +84,7 @@
           <span class="kpi-title">Facturación Estimada Neta</span>
           <div class="kpi-icon">📈</div>
         </div>
-        <div class="kpi-value" id="kpiNetRevenue">$ 21.841.350</div>
+        <div class="kpi-value" id="kpiNetRevenue">$ 3.001.152</div>
         <div class="kpi-subtext">Proyección neta post-comisión MeLi (87%)</div>
       </div>
 
@@ -93,7 +93,7 @@
           <span class="kpi-title">Índice de Salud de Stock</span>
           <div class="kpi-icon">🎯</div>
         </div>
-        <div class="kpi-value" id="kpiHealthScore">100%</div>
+        <div class="kpi-value" id="kpiHealthScore">97%</div>
         <div class="kpi-subtext">Publicaciones sin quiebre ni riesgo</div>
       </div>
 
@@ -102,7 +102,7 @@
           <span class="kpi-title">Sin Stock (Agotados)</span>
           <div class="kpi-icon">⛔</div>
         </div>
-        <div class="kpi-value" id="kpiOutOfStock">0</div>
+        <div class="kpi-value" id="kpiOutOfStock">1</div>
         <div class="kpi-subtext">Quiebres de stock activos</div>
       </div>
     </section>
@@ -163,10 +163,10 @@
 
         <div class="filter-pills">
           <button class="pill active" data-filter="ALL">Todos (<span id="countAll">39</span>)</button>
-          <button class="pill pill-rose" data-filter="AGOTADO">Agotados (<span id="countAgotado">0</span>)</button>
+          <button class="pill pill-rose" data-filter="AGOTADO">Agotados (<span id="countAgotado">1</span>)</button>
           <button class="pill pill-amber" data-filter="CRITICO">Punto de Pedido (<span id="countCritico">0</span>)</button>
           <button class="pill pill-emerald" data-filter="ADECUADO">Adecuado (<span id="countAdecuado">0</span>)</button>
-          <button class="pill pill-slate" data-filter="SOBRESTOCK">Sobrestock (<span id="countSobrestock">39</span>)</button>
+          <button class="pill pill-slate" data-filter="SOBRESTOCK">Sobrestock (<span id="countSobrestock">38</span>)</button>
         </div>
       </div>
 
@@ -216,6 +216,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=40.0"></script>
+  <script src="app.js?v=50.0"></script>
 </body>
 </html>

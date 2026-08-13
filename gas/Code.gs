@@ -73,6 +73,7 @@ function syncMeliData() {
       id: item.id,
       sku: item.sku,
       title: item.title,
+      price: item.price,
       stock: stock,
       sales_30d: 0,
       sales_7d: 0,
