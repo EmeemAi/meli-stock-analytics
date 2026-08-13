@@ -17,7 +17,7 @@ const state = {
   },
   activeFilter: 'ALL',
   searchQuery: '',
-  gasUrl: localStorage.getItem('MELI_GAS_URL') || '',
+  gasUrl: localStorage.getItem('MELI_GAS_URL') || 'https://script.google.com/macros/s/AKfycbyK0LZ0mmU9vE9oV2Xo6C2Ca6a0yDD_WfJK2RO9CSfz1_I6y7joeyiSiSxR9dA6E7XT/exec',
   charts: {
     status: null,
     topSuggested: null
@@ -118,7 +118,7 @@ async function loadData() {
     const data = await response.json();
 
     if (data.error) {
-      alert(`Error reportado por el servidor: ${data.error}`);
+      alert(`Mensaje de sincronización: ${data.error}`);
       return;
     }
 
@@ -139,7 +139,7 @@ async function loadData() {
       document.getElementById('targetCoverageVal').textContent = `${state.config.target_coverage_days} días`;
     }
 
-    syncText.textContent = state.gasUrl ? 'Conectado a GAS' : 'Modo Prueba (Mock Data)';
+    syncText.textContent = state.gasUrl ? 'Conectado a GAS en Vivo' : 'Modo Prueba (Mock Data)';
     recalculateMetrics();
 
   } catch (err) {
@@ -174,10 +174,10 @@ function recalculateMetrics() {
     // Sugerencia de Reposición
     if (item.stock === 0) {
       item.status = 'AGOTADO';
-      item.reorder_suggested = Math.ceil(vpd * target_coverage_days);
+      item.reorder_suggested = Math.ceil(vpd * targetCoverageDays);
     } else if (item.stock <= item.reorder_point) {
       item.status = 'CRITICO';
-      item.reorder_suggested = Math.max(0, Math.ceil((vpd * target_coverage_days) - item.stock));
+      item.reorder_suggested = Math.max(0, Math.ceil((vpd * targetCoverageDays) - item.stock));
     } else if (item.coverage_days > 90) {
       item.status = 'SOBRESTOCK';
       item.reorder_suggested = 0;

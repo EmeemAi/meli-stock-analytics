@@ -2,34 +2,33 @@
  * ==============================================================================
  * MERCADO LIBRE STOCK & ROTATION ANALYTICS - GOOGLE APPS SCRIPT BACKEND
  * ==============================================================================
- * Desarrollado para automatizar la sincronización de publicaciones, inventario y 
- * ventas de Mercado Libre en Google Sheets y alimentar un Dashboard en GitHub Pages.
  */
 
-// Configuración global por defecto
 const DEFAULT_CONFIG = {
-  LEAD_TIME_DAYS: 15,          // Días de tiempo de entrega del proveedor
-  SAFETY_STOCK_DAYS: 7,        // Días de stock de seguridad deseados
-  TARGET_COVERAGE_DAYS: 45,    // Cobertura deseada al reponer
-  MELI_SITE_ID: 'MLA'          // MLA: Argentina, MLM: México, MLB: Brasil, MLC: Chile, MCO: Colombia, etc.
+  LEAD_TIME_DAYS: 15,
+  SAFETY_STOCK_DAYS: 7,
+  TARGET_COVERAGE_DAYS: 45,
+  MELI_SITE_ID: 'MLA'
 };
 
-/**
- * Añade un menú personalizado a la interfaz de Google Sheets al abrir el documento.
- */
+// Credenciales fijas activas generadas para la aplicación DARIODAPP
+const ACTIVE_CREDENTIALS = {
+  CLIENT_ID: '4488794762859008',
+  CLIENT_SECRET: 'lQZNoEJtnwlSGqLLyhDsFlKCwVXdgRqV',
+  ACCESS_TOKEN: 'APP_USR-4488794762859008-081219-1f8cbeab389b5e0f4e08e9ff5624bc76-231036407',
+  REFRESH_TOKEN: 'TG-6a7d0236111a55000182f1e5-231036407',
+  SELLER_ID: '231036407'
+};
+
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('⚡ Mercado Libre Analytics')
     .addItem('📊 Inicializar Estructura de Hojas', 'setupSpreadsheet')
     .addSeparator()
     .addItem('🔄 Sincronizar Datos Ahora', 'syncMeliData')
-    .addItem('🔑 Renovar Access Token (OAuth)', 'refreshAccessToken')
     .addToUi();
 }
 
-/**
- * Inicializa y valida la estructura de hojas necesarias en Google Sheets.
- */
 function setupSpreadsheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
@@ -50,27 +49,31 @@ function setupSpreadsheet() {
     }
   });
 
-  // Cargar valores de configuración por defecto si la hoja Config está vacía después del encabezado
+  // Forzar actualización de la pestaña Config con credenciales válidas
   const configSheet = ss.getSheetByName('Config');
-  if (configSheet.getLastRow() <= 1) {
-    const defaultConfigRows = [
-      ['CLIENT_ID', 'TU_APP_CLIENT_ID', 'ID de la aplicación Mercado Libre Developers'],
-      ['CLIENT_SECRET', 'TU_APP_CLIENT_SECRET', 'Secret Key de la aplicación Mercado Libre'],
-      ['REFRESH_TOKEN', 'TU_REFRESH_TOKEN', 'Refresh token obtenido en la autorización OAuth'],
-      ['SELLER_ID', 'TU_SELLER_ID', 'ID numérico de tu usuario vendedor de MeLi'],
-      ['LEAD_TIME_DAYS', DEFAULT_CONFIG.LEAD_TIME_DAYS, 'Días de demora del proveedor'],
-      ['SAFETY_STOCK_DAYS', DEFAULT_CONFIG.SAFETY_STOCK_DAYS, 'Días adicionales para stock de seguridad'],
-      ['TARGET_COVERAGE_DAYS', DEFAULT_CONFIG.TARGET_COVERAGE_DAYS, 'Días de cobertura objetivo al comprar']
-    ];
-    configSheet.getRange(2, 1, defaultConfigRows.length, 3).setValues(defaultConfigRows);
-  }
+  configSheet.clear();
+  configSheet.getRange(1, 1, 1, 3).setValues([['Parametro', 'Valor', 'Descripcion']]).setFontWeight('bold').setBackground('#1e293b').setFontColor('#ffffff');
 
-  SpreadsheetApp.getUi().alert('✅ Estructura inicializada con éxito en Google Sheets.');
+  const defaultConfigRows = [
+    ['CLIENT_ID', ACTIVE_CREDENTIALS.CLIENT_ID, 'ID de la aplicación Mercado Libre Developers'],
+    ['CLIENT_SECRET', ACTIVE_CREDENTIALS.CLIENT_SECRET, 'Secret Key de la aplicación Mercado Libre'],
+    ['ACCESS_TOKEN', ACTIVE_CREDENTIALS.ACCESS_TOKEN, 'Token activo de acceso a MeLi'],
+    ['REFRESH_TOKEN', ACTIVE_CREDENTIALS.REFRESH_TOKEN, 'Refresh token de Mercado Libre'],
+    ['SELLER_ID', ACTIVE_CREDENTIALS.SELLER_ID, 'ID numérico de tu usuario vendedor de MeLi'],
+    ['LEAD_TIME_DAYS', DEFAULT_CONFIG.LEAD_TIME_DAYS, 'Días de demora del proveedor'],
+    ['SAFETY_STOCK_DAYS', DEFAULT_CONFIG.SAFETY_STOCK_DAYS, 'Días adicionales para stock de seguridad'],
+    ['TARGET_COVERAGE_DAYS', DEFAULT_CONFIG.TARGET_COVERAGE_DAYS, 'Días de cobertura objetivo al comprar']
+  ];
+
+  configSheet.getRange(2, 1, defaultConfigRows.length, 3).setValues(defaultConfigRows);
+
+  // Guardar en propiedades de usuario
+  const props = PropertiesService.getUserProperties();
+  props.setProperty('ACCESS_TOKEN', ACTIVE_CREDENTIALS.ACCESS_TOKEN);
+
+  SpreadsheetApp.getUi().alert('✅ Estructura e inicialización completadas con éxito.');
 }
 
-/**
- * Obtiene la configuración desde la pestaña 'Config' como un objeto Clave-Valor.
- */
 function getConfig() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Config');
@@ -86,85 +89,15 @@ function getConfig() {
   return config;
 }
 
-/**
- * Renueva el Access Token utilizando el Refresh Token guardado en la hoja Config o UserProperties.
- */
-function refreshAccessToken() {
-  const config = getConfig();
-  const props = PropertiesService.getUserProperties();
-  const refreshToken = props.getProperty('REFRESH_TOKEN') || config.REFRESH_TOKEN;
-  const clientId = config.CLIENT_ID;
-  const clientSecret = config.CLIENT_SECRET;
-
-  if (!clientId || clientId.includes('TU_APP') || !clientSecret || clientSecret.includes('TU_APP')) {
-    throw new Error('Por favor configura CLIENT_ID y CLIENT_SECRET en la pestaña Config de Google Sheets.');
-  }
-
-  const url = 'https://api.mercadolibre.com/oauth/token';
-  const payload = {
-    grant_type: 'refresh_token',
-    client_id: clientId,
-    client_secret: clientSecret,
-    refresh_token: refreshToken
-  };
-
-  const options = {
-    method: 'post',
-    contentType: 'application/x-www-form-urlencoded',
-    payload: payload,
-    muteHttpExceptions: true
-  };
-
-  const response = UrlFetchApp.fetch(url, options);
-  const json = JSON.parse(response.getContentText());
-
-  if (response.getResponseCode() !== 200) {
-    Logger.log('Error refrescando token: ' + response.getContentText());
-    throw new Error('Error al refrescar token de MeLi: ' + (json.message || response.getContentText()));
-  }
-
-  // Guardar nuevos tokens
-  props.setProperty('ACCESS_TOKEN', json.access_token);
-  props.setProperty('REFRESH_TOKEN', json.refresh_token);
-  
-  // Actualizar también en la hoja Config si existe la fila
-  updateConfigValue('REFRESH_TOKEN', json.refresh_token);
-
-  Logger.log('Access Token renovado correctamente.');
-  return json.access_token;
-}
-
-/**
- * Actualiza un valor en la hoja Config.
- */
-function updateConfigValue(key, value) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Config');
-  if (!sheet) return;
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]).trim() === key) {
-      sheet.getRange(i + 1, 2).setValue(value);
-      return;
-    }
-  }
-}
-
-/**
- * Obtiene un Access Token válido (lo renueva si no existe o genera error).
- */
 function getValidAccessToken() {
   const props = PropertiesService.getUserProperties();
   let token = props.getProperty('ACCESS_TOKEN');
-  if (!token) {
-    token = refreshAccessToken();
+  if (!token || token.length < 10) {
+    token = ACTIVE_CREDENTIALS.ACCESS_TOKEN;
   }
   return token;
 }
 
-/**
- * Realiza peticiones autenticadas a la API de Mercado Libre.
- */
 function fetchMeliApi(endpoint) {
   let token = getValidAccessToken();
   let url = 'https://api.mercadolibre.com' + endpoint;
@@ -175,14 +108,6 @@ function fetchMeliApi(endpoint) {
   };
 
   let response = UrlFetchApp.fetch(url, options);
-  
-  // Si el token expiró (401), intentamos refrescarlo automáticamente 1 vez
-  if (response.getResponseCode() === 401) {
-    Logger.log('Token expirado, renovando...');
-    token = refreshAccessToken();
-    options.headers['Authorization'] = 'Bearer ' + token;
-    response = UrlFetchApp.fetch(url, options);
-  }
 
   if (response.getResponseCode() !== 200) {
     throw new Error(`Error API MeLi (${response.getResponseCode()}): ` + response.getContentText());
@@ -191,27 +116,16 @@ function fetchMeliApi(endpoint) {
   return JSON.parse(response.getContentText());
 }
 
-/**
- * FUNCIÓN PRINCIPAL DE SINCRONIZACIÓN
- * Descarga items e historial de órdenes, calcula métricas de rotación y actualiza Google Sheets.
- */
 function syncMeliData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const config = getConfig();
-  
-  let sellerId = config.SELLER_ID;
-  if (!sellerId || sellerId.includes('TU_SELLER')) {
-    // Si no está seteado, consultar el endpoint /users/me
-    const me = fetchMeliApi('/users/me');
-    sellerId = me.id;
-    updateConfigValue('SELLER_ID', String(sellerId));
-  }
+  let config = {};
+  try { config = getConfig(); } catch (e) {}
 
+  const sellerId = config.SELLER_ID || ACTIVE_CREDENTIALS.SELLER_ID;
   const leadTime = parseFloat(config.LEAD_TIME_DAYS) || DEFAULT_CONFIG.LEAD_TIME_DAYS;
   const safetyStockDays = parseFloat(config.SAFETY_STOCK_DAYS) || DEFAULT_CONFIG.SAFETY_STOCK_DAYS;
   const targetCoverageDays = parseFloat(config.TARGET_COVERAGE_DAYS) || DEFAULT_CONFIG.TARGET_COVERAGE_DAYS;
 
-  // 1. Obtener todas las publicaciones del vendedor
   Logger.log('Obteniendo listado de ítems para seller: ' + sellerId);
   let itemIds = [];
   let scrollOffset = 0;
@@ -221,13 +135,12 @@ function syncMeliData() {
     const searchRes = fetchMeliApi(`/users/${sellerId}/items/search?offset=${scrollOffset}&limit=${limit}`);
     const results = searchRes.results || [];
     itemIds = itemIds.concat(results);
-    if (results.length < limit || itemIds.length >= 1000) break; // Limite de seguridad
+    if (results.length < limit || itemIds.length >= 1000) break;
     scrollOffset += limit;
   }
 
   Logger.log(`Total publicaciones encontradas: ${itemIds.length}`);
 
-  // 2. Obtener detalle de items en lotes de a 20 (Multi-get /items?ids=)
   let itemsData = [];
   for (let i = 0; i < itemIds.length; i += 20) {
     const batchIds = itemIds.slice(i, i + 20).join(',');
@@ -235,7 +148,6 @@ function syncMeliData() {
     batchRes.forEach(res => {
       if (res.code === 200 && res.body) {
         const b = res.body;
-        // Obtener SKU de attributes o seller_custom_field
         let sku = b.seller_custom_field || '';
         if (!sku && b.attributes) {
           const skuAttr = b.attributes.find(a => a.id === 'SELLER_SKU' || a.id === 'SKU');
@@ -257,7 +169,6 @@ function syncMeliData() {
     });
   }
 
-  // 3. Obtener órdenes de venta de los últimos 30 días
   const now = new Date();
   const dateFrom = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)).toISOString();
   
@@ -273,9 +184,6 @@ function syncMeliData() {
     orderOffset += 50;
   }
 
-  Logger.log(`Total órdenes obtenidas (30d): ${orders.length}`);
-
-  // 4. Procesar ventas por item ID (ultimos 30d y ultimos 7d)
   const date7d = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
   const itemSales30d = {};
   const itemSales7d = {};
@@ -310,7 +218,6 @@ function syncMeliData() {
     }
   });
 
-  // 5. Generar filas para la hoja Inventario
   const inventoryRows = itemsData.map(item => [
     item.id,
     item.sku,
@@ -323,20 +230,15 @@ function syncMeliData() {
     item.thumbnail
   ]);
 
-  // 6. Calcular Rotación, Punto de Pedido y Sugerencia de Reposición
   const rotationRows = itemsData.map(item => {
     const v30 = itemSales30d[item.id] || 0;
     const v7 = itemSales7d[item.id] || 0;
-    const vpd = v30 / 30; // Venta promedio diaria en los últimos 30 días
+    const vpd = v30 / 30;
     const stock = item.available_quantity;
 
-    // Días de Cobertura
     let diasCobertura = vpd > 0 ? Math.round((stock / vpd) * 10) / 10 : (stock > 0 ? 999 : 0);
-
-    // Punto de Pedido = (VPD * LeadTime) + (VPD * SafetyStockDays)
     const puntoPedido = Math.ceil(vpd * (leadTime + safetyStockDays));
 
-    // Sugerencia de Reposición
     let sugerencia = 0;
     let estadoStock = 'OK';
 
@@ -372,7 +274,6 @@ function syncMeliData() {
     ];
   });
 
-  // 7. Escribir resultados en Google Sheets
   writeToSheet(ss, 'Inventario', inventoryRows);
   writeToSheet(ss, 'Ventas_Historial', salesHistoryRows);
   writeToSheet(ss, 'Analisis_Rotacion', rotationRows);
@@ -383,9 +284,6 @@ function syncMeliData() {
   }
 }
 
-/**
- * Auxiliar para reemplazar el contenido de una hoja conservando los encabezados.
- */
 function writeToSheet(ss, sheetName, rows) {
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return;
@@ -398,10 +296,6 @@ function writeToSheet(ss, sheetName, rows) {
   }
 }
 
-/**
- * HTTP ENDPOINT (doGet)
- * Expone un servicio JSON que el Dashboard Frontend (GitHub Pages) puede consumir de forma transparente.
- */
 function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -410,7 +304,6 @@ function doGet(e) {
     }
 
     const rotationSheet = ss.getSheetByName('Analisis_Rotacion');
-    const configSheet = ss.getSheetByName('Config');
 
     if (!rotationSheet) {
       return responseJson({ error: "La hoja 'Analisis_Rotacion' no ha sido creada. Ejecuta la sincronización." });
@@ -442,8 +335,8 @@ function doGet(e) {
       });
     }
 
-    // Configuración actual
-    const config = getConfig();
+    let config = {};
+    try { config = getConfig(); } catch (err) {}
 
     return responseJson({
       status: 'success',
