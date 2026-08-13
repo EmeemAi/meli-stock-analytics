@@ -1,6 +1,6 @@
 {
   "status": "success",
-  "updated_at": "2026-08-12T10:30:00.000Z",
+  "updated_at": "2026-08-13T00:00:00.000Z",
   "config": {
     "lead_time_days": 15,
     "safety_stock_days": 7,
