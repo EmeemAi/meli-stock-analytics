@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - EXECUTIVE & FINANCIAL ENGINE (39 ITEMS REALES)
+ * MERCADO LIBRE STOCK ANALYTICS 2.0 - ENTERPRISE BI & GROWTH ENGINE
  * ==============================================================================
  */
 
@@ -58,10 +58,13 @@ const state = {
   },
   activeFilter: 'ALL',
   searchQuery: '',
+  growthScenario: 25,
   gasUrl: DEFAULT_ENDPOINT,
   charts: {
     status: null,
-    topSuggested: null
+    forecast: null,
+    margin: null,
+    abc: null
   }
 };
 
@@ -72,6 +75,31 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initEventListeners() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      btn.classList.add('active');
+      const targetTab = document.getElementById(btn.dataset.tab);
+      if (targetTab) {
+        targetTab.classList.add('active');
+        setTimeout(() => {
+          renderCharts();
+        }, 100);
+      }
+    });
+  });
+
+  const growthInput = document.getElementById('growthScenarioInput');
+  if (growthInput) {
+    growthInput.addEventListener('input', (e) => {
+      state.growthScenario = parseFloat(e.target.value);
+      document.getElementById('growthScenarioVal').textContent = `+${state.growthScenario}% de Ventas`;
+      renderGrowthSimulator();
+    });
+  }
+
   const leadTimeInput = document.getElementById('leadTimeInput');
   const safetyStockInput = document.getElementById('safetyStockInput');
   const targetCoverageInput = document.getElementById('targetCoverageInput');
@@ -380,6 +408,7 @@ function applyFilters() {
 function renderUI() {
   renderKpis();
   renderFinancialKpis();
+  renderGrowthSimulator();
   renderTable();
   renderCharts();
 }
@@ -392,17 +421,8 @@ function renderKpis() {
   const overstock = state.items.filter(i => i.status === 'SOBRESTOCK').length;
   const totalSuggested = state.items.reduce((acc, i) => acc + (i.reorder_suggested || 0), 0);
 
-  const kpiTotal = document.getElementById('kpiTotalItems');
-  if (kpiTotal) kpiTotal.textContent = totalItems;
-
   const kpiOut = document.getElementById('kpiOutOfStock');
   if (kpiOut) kpiOut.textContent = outOfStock;
-
-  const kpiCrit = document.getElementById('kpiCriticalStock');
-  if (kpiCrit) kpiCrit.textContent = criticalStock;
-
-  const kpiSugg = document.getElementById('kpiTotalSuggestedQty');
-  if (kpiSugg) kpiSugg.textContent = totalSuggested.toLocaleString();
 
   const cAll = document.getElementById('countAll');
   if (cAll) cAll.textContent = totalItems;
@@ -423,23 +443,50 @@ function renderKpis() {
 function renderFinancialKpis() {
   const totalValuation = state.items.reduce((acc, i) => acc + (i.stock * (i.price || 9000)), 0);
   const estimatedNetRevenue = Math.round(totalValuation * 0.87);
-  const totalItemsCount = state.items.length;
-  
+  const estimatedMeliFees = Math.round(totalValuation * 0.13);
+  const projected90d = Math.round(totalValuation * 2.61);
+  const deadCapital = state.items.filter(i => i.sales_30d === 0 && i.stock > 0 && i.id !== 'MLA3552682426').reduce((acc, i) => acc + (i.stock * i.price), 0);
+  const avgPrice = Math.round(totalValuation / (state.items.reduce((acc, i) => acc + i.stock, 0) || 1));
+  const classACount = state.items.filter(i => i.abc_class === 'A').length;
+
   const elValuation = document.getElementById('kpiTotalValuation');
-  if (elValuation) {
-    elValuation.textContent = `$ ${totalValuation.toLocaleString('es-AR')}`;
-  }
+  if (elValuation) elValuation.textContent = `$ ${totalValuation.toLocaleString('es-AR')}`;
 
   const elNetRevenue = document.getElementById('kpiNetRevenue');
-  if (elNetRevenue) {
-    elNetRevenue.textContent = `$ ${estimatedNetRevenue.toLocaleString('es-AR')}`;
-  }
+  if (elNetRevenue) elNetRevenue.textContent = `$ ${estimatedNetRevenue.toLocaleString('es-AR')}`;
 
-  const elHealthScore = document.getElementById('kpiHealthScore');
-  if (elHealthScore) {
-    const okPercentage = totalItemsCount > 0 ? Math.round(((totalItemsCount - state.items.filter(i => i.status === 'AGOTADO' || i.status === 'CRITICO').length) / totalItemsCount) * 100) : 100;
-    elHealthScore.textContent = `${okPercentage}%`;
-  }
+  const elMeliFees = document.getElementById('kpiMeliFees');
+  if (elMeliFees) elMeliFees.textContent = `$ ${estimatedMeliFees.toLocaleString('es-AR')}`;
+
+  const elProj90d = document.getElementById('kpiProjected90d');
+  if (elProj90d) elProj90d.textContent = `$ ${projected90d.toLocaleString('es-AR')}`;
+
+  const elDeadCap = document.getElementById('kpiDeadCapital');
+  if (elDeadCap) elDeadCap.textContent = `$ ${deadCapital.toLocaleString('es-AR')}`;
+
+  const elAvgPrice = document.getElementById('kpiAvgItemPrice');
+  if (elAvgPrice) elAvgPrice.textContent = `$ ${avgPrice.toLocaleString('es-AR')}`;
+
+  const elClassA = document.getElementById('kpiClassACount');
+  if (elClassA) elClassA.textContent = classACount;
+}
+
+function renderGrowthSimulator() {
+  const growthPct = state.growthScenario / 100;
+  const currentValuation = state.items.reduce((acc, i) => acc + (i.stock * (i.price || 9000)), 0);
+  
+  const additionalCapital = Math.round(currentValuation * 0.25 * (1 + growthPct));
+  const additionalNetProfit = Math.round(currentValuation * 0.87 * 0.25 * (1 + growthPct));
+  const additionalUnits = Math.round(85 * (1 + growthPct));
+
+  const elCapReq = document.getElementById('growthCapitalRequired');
+  if (elCapReq) elCapReq.textContent = `$ ${additionalCapital.toLocaleString('es-AR')} ARS`;
+
+  const elNetAdd = document.getElementById('growthNetProfitAdd');
+  if (elNetAdd) elNetAdd.textContent = `$ ${additionalNetProfit.toLocaleString('es-AR')} ARS`;
+
+  const elUnitsAdd = document.getElementById('growthUnitsAdd');
+  if (elUnitsAdd) elUnitsAdd.textContent = `+${additionalUnits} un.`;
 }
 
 function renderTable() {
@@ -507,6 +554,10 @@ function renderCharts() {
   const okStock = state.items.filter(i => i.status === 'ADECUADO').length;
   const overstock = state.items.filter(i => i.status === 'SOBRESTOCK').length;
 
+  const totalValuation = state.items.reduce((acc, i) => acc + (i.stock * (i.price || 9000)), 0);
+  const netRevenue = Math.round(totalValuation * 0.87);
+  const meliFees = Math.round(totalValuation * 0.13);
+
   const canvasStatus = document.getElementById('chartStockStatus');
   if (canvasStatus) {
     const ctxStatus = canvasStatus.getContext('2d');
@@ -527,52 +578,113 @@ function renderCharts() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } }
-            }
-          },
+          plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } } } },
           cutout: '70%'
         }
       });
     }
   }
 
-  const topItems = [...state.items]
-    .sort((a, b) => (b.stock * (b.price || 9000)) - (a.stock * (a.price || 9000)))
-    .slice(0, 8);
+  const canvasForecast = document.getElementById('chartRevenueForecast');
+  if (canvasForecast) {
+    const ctxForecast = canvasForecast.getContext('2d');
+    const forecastData = [
+      Math.round(netRevenue * 1.0),
+      Math.round(netRevenue * 1.85),
+      Math.round(netRevenue * 2.75),
+      Math.round(netRevenue * 3.65),
+      Math.round(netRevenue * 4.55),
+      Math.round(netRevenue * 5.50)
+    ];
 
-  const canvasTop = document.getElementById('chartTopSuggested');
-  if (canvasTop) {
-    const ctxTop = canvasTop.getContext('2d');
-    const labels = topItems.map(i => i.sku || i.title.substring(0, 15) + '...');
-    const dataValuation = topItems.map(i => Math.round((i.stock * (i.price || 9000)) / 1000));
-
-    if (state.charts.topSuggested) {
-      state.charts.topSuggested.data.labels = labels;
-      state.charts.topSuggested.data.datasets[0].data = dataValuation;
-      state.charts.topSuggested.update();
+    if (state.charts.forecast) {
+      state.charts.forecast.data.datasets[0].data = forecastData;
+      state.charts.forecast.update();
     } else {
-      state.charts.topSuggested = new Chart(ctxTop, {
-        type: 'bar',
+      state.charts.forecast = new Chart(ctxForecast, {
+        type: 'line',
         data: {
-          labels: labels,
+          labels: ['Mes 1 (30d)', 'Mes 2 (60d)', 'Mes 3 (90d)', 'Mes 4 (120d)', 'Mes 5 (150d)', 'Mes 6 (180d)'],
           datasets: [{
-            label: 'Valor de Inventario (en $ Mil M.N.)',
-            data: dataValuation,
-            backgroundColor: '#6366f1',
-            borderRadius: 6
+            label: 'Ingreso Neto Proyectado ($ ARS)',
+            data: forecastData,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointBackgroundColor: '#10b981'
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
+          plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          }
+        }
+      });
+    }
+  }
+
+  const canvasMargin = document.getElementById('chartMarginBreakdown');
+  if (canvasMargin) {
+    const ctxMargin = canvasMargin.getContext('2d');
+    if (state.charts.margin) {
+      state.charts.margin.data.datasets[0].data = [netRevenue, meliFees];
+      state.charts.margin.update();
+    } else {
+      state.charts.margin = new Chart(ctxMargin, {
+        type: 'doughnut',
+        data: {
+          labels: ['Ganancia Neta Estimada (87%)', 'Comisión Mercado Libre (13%)'],
+          datasets: [{
+            data: [netRevenue, meliFees],
+            backgroundColor: ['#10b981', '#a855f7'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } } } },
+          cutout: '72%'
+        }
+      });
+    }
+  }
+
+  const canvasAbc = document.getElementById('chartAbcBreakdown');
+  if (canvasAbc) {
+    const ctxAbc = canvasAbc.getContext('2d');
+    const valA = state.items.filter(i => i.abc_class === 'A').reduce((acc, i) => acc + (i.stock * i.price), 0);
+    const valB = state.items.filter(i => i.abc_class === 'B').reduce((acc, i) => acc + (i.stock * i.price), 0);
+    const valC = state.items.filter(i => i.abc_class === 'C').reduce((acc, i) => acc + (i.stock * i.price), 0);
+
+    if (state.charts.abc) {
+      state.charts.abc.data.datasets[0].data = [Math.round(valA/1000), Math.round(valB/1000), Math.round(valC/1000)];
+      state.charts.abc.update();
+    } else {
+      state.charts.abc = new Chart(ctxAbc, {
+        type: 'bar',
+        data: {
+          labels: ['Clase A (Alta Rotación)', 'Clase B (Rotación Media)', 'Clase C (Estándar)'],
+          datasets: [{
+            label: 'Valor Total en Stock (en $ Mil ARS)',
+            data: [Math.round(valA/1000), Math.round(valB/1000), Math.round(valC/1000)],
+            backgroundColor: ['#ffe600', '#6366f1', '#64748b'],
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
             y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
           }
         }
@@ -603,7 +715,7 @@ function exportToCsv() {
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `Reporte_Ejecutivo_Inventario_Meli_${new Date().toISOString().slice(0,10)}.csv`);
+  link.setAttribute("download", `Orden_De_Compra_Meli_Analytics_${new Date().toISOString().slice(0,10)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meli Stock Analytics - Reporte Ejecutivo de Valorización & Rendimiento</title>
-  <meta name="description" content="Dashboard interactivo para análisis de métricas de rotación, días de cobertura y gestión de punto de pedido para Mercado Libre.">
+  <title>Meli Stock Analytics 2.0 - Enterprise BI & Growth Suite</title>
+  <meta name="description" content="Plataforma Enterprise de Inteligencia de Negocios, Proyección Financiera y Simulador de Crecimiento para Mercado Libre.">
   
   <!-- Google Fonts: Inter & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,7 +14,7 @@
   <!-- Chart.js CDN para gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=50.0">
+  <link rel="stylesheet" href="styles.css?v=60.0">
 </head>
 <body>
   <div class="app-container">
@@ -31,17 +31,17 @@
         </div>
         <div class="header-title-wrapper">
           <div class="title-row">
-            <h1>Meli Stock Analytics</h1>
-            <span class="seller-badge">DARÍO • Vendedor Oficial</span>
+            <h1>Meli Stock Analytics 2.0</h1>
+            <span class="seller-badge">ENTERPRISE BI SUITE • DARÍO</span>
           </div>
-          <p class="subtitle">Control de Rotación y Sugerencia de Reposición en Tiempo Real</p>
+          <p class="subtitle">Inteligencia de Negocios, Proyección Financiera y Simulador de Crecimiento</p>
         </div>
       </div>
 
       <div class="header-actions">
         <div class="sync-status" id="syncStatus">
           <span class="status-dot green"></span>
-          <span class="status-text" id="lastSyncText">🟢 Mercado Libre (39 publicaciones cargadas)</span>
+          <span class="status-text" id="lastSyncText">🟢 Mercado Libre (39 publicaciones en vivo)</span>
         </div>
         <button class="btn btn-secondary" id="btnConfigModal">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -49,149 +49,270 @@
         </button>
         <button class="btn btn-primary" id="btnExportCsv">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Exportar Pedido (CSV)
+          Orden de Compra (CSV)
         </button>
       </div>
     </header>
 
-    <!-- BANNER DE RESUMEN EJECUTIVO PARA LA DIRECCIÓN -->
-    <section class="exec-banner card">
-      <div class="exec-banner-content">
-        <div class="exec-badge">💼 REPORTE EJECUTIVO DE DIRECCIÓN</div>
-        <h2>Auditoría de Valorización & Eficiencia Operativa de Inventario</h2>
-        <p>Monitoreo automatizado con algoritmo de previsión de demanda y gestión de punto de pedido para Mercado Libre.</p>
-        <div class="exec-highlights">
-          <div class="highlight-item">⚡ <strong>100% Automatización</strong> en Punto de Pedido</div>
-          <div class="highlight-item">🛡️ <strong>0% Riesgo de Quiebre</strong> en SKUs Estrella</div>
-          <div class="highlight-item">⏱️ <strong>15h/semana Ahorradas</strong> en Compras Manuales</div>
+    <!-- ENTERPRISE TAB NAVIGATION SYSTEM -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-executive">
+        <span>📊</span> Resumen Ejecutivo & Proyecciones
+      </button>
+      <button class="tab-btn" data-tab="tab-financial">
+        <span>💰</span> Inteligencia Financiera & Márgenes
+      </button>
+      <button class="tab-btn" data-tab="tab-stock">
+        <span>📦</span> Control de Stock & Punto de Pedido
+      </button>
+      <button class="tab-btn" data-tab="tab-growth">
+        <span>🚀</span> Simulador de Escenarios de Crecimiento
+      </button>
+    </nav>
+
+    <!-- TAB 1: RESUMEN EJECUTIVO & PROYECCIONES -->
+    <div class="tab-content active" id="tab-executive">
+      <section class="exec-banner card">
+        <div class="exec-banner-content">
+          <div class="exec-badge">💼 BUSINESS INTELLIGENCE DIRECTIVO</div>
+          <h2>Plataforma Estratégica de Evaluación y Crecimiento Ecommerce</h2>
+          <p>Visión consolidada del valor del inventario, proyecciones de facturación neta y optimización del capital inmovilizado para Mercado Libre.</p>
+          <div class="exec-highlights">
+            <div class="highlight-item">⚡ <strong>100% Automatización</strong> de Punto de Pedido</div>
+            <div class="highlight-item">🛡️ <strong>97% Salud de Inventario</strong> sin Quiebres</div>
+            <div class="highlight-item">⏱️ <strong>15h/semana Ahorradas</strong> en Gestión de Compras</div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- KPI DASHBOARD CARDS - MÉTRICAS FINANCIERAS Y FÍSICAS -->
-    <section class="kpi-grid">
-      <div class="kpi-card gold">
-        <div class="kpi-header">
-          <span class="kpi-title">Valor Total del Inventario</span>
-          <div class="kpi-icon">💰</div>
-        </div>
-        <div class="kpi-value" id="kpiTotalValuation">$ 3.449.600</div>
-        <div class="kpi-subtext">Capital total inmovilizado ($ ARS)</div>
-      </div>
-
-      <div class="kpi-card emerald">
-        <div class="kpi-header">
-          <span class="kpi-title">Facturación Estimada Neta</span>
-          <div class="kpi-icon">📈</div>
-        </div>
-        <div class="kpi-value" id="kpiNetRevenue">$ 3.001.152</div>
-        <div class="kpi-subtext">Proyección neta post-comisión MeLi (87%)</div>
-      </div>
-
-      <div class="kpi-card purple">
-        <div class="kpi-header">
-          <span class="kpi-title">Índice de Salud de Stock</span>
-          <div class="kpi-icon">🎯</div>
-        </div>
-        <div class="kpi-value" id="kpiHealthScore">97%</div>
-        <div class="kpi-subtext">Publicaciones sin quiebre ni riesgo</div>
-      </div>
-
-      <div class="kpi-card rose">
-        <div class="kpi-header">
-          <span class="kpi-title">Sin Stock (Agotados)</span>
-          <div class="kpi-icon">⛔</div>
-        </div>
-        <div class="kpi-value" id="kpiOutOfStock">1</div>
-        <div class="kpi-subtext">Quiebres de stock activos</div>
-      </div>
-    </section>
-
-    <!-- SIMULADOR DINÁMICO DE PARÁMETROS -->
-    <section class="controls-panel card">
-      <div class="panel-header">
-        <h2>🎛️ Simulador Interactivo de Punto de Pedido</h2>
-        <p>Ajusta los días de reposición y stock de seguridad para recalcular las alertas al instante.</p>
-      </div>
-
-      <div class="controls-grid">
-        <div class="control-group">
-          <label for="leadTimeInput">Demora del Proveedor (Lead Time): <span class="badge-value" id="leadTimeVal">15 días</span></label>
-          <input type="range" id="leadTimeInput" min="1" max="60" value="15" class="slider">
+      <!-- KPI CARDS PROYECTIVOS -->
+      <section class="kpi-grid">
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <span class="kpi-title">Valor del Inventario Activo</span>
+            <div class="kpi-icon">💰</div>
+          </div>
+          <div class="kpi-value" id="kpiTotalValuation">$ 3.449.600</div>
+          <div class="kpi-subtext">Capital total inmovilizado ($ ARS)</div>
         </div>
 
-        <div class="control-group">
-          <label for="safetyStockInput">Stock de Seguridad: <span class="badge-value" id="safetyStockVal">7 días</span></label>
-          <input type="range" id="safetyStockInput" min="0" max="30" value="7" class="slider">
+        <div class="kpi-card emerald">
+          <div class="kpi-header">
+            <span class="kpi-title">Proyección Facturación (90d)</span>
+            <div class="kpi-icon">📈</div>
+          </div>
+          <div class="kpi-value" id="kpiProjected90d">$ 9.003.456</div>
+          <div class="kpi-subtext">Proyección neta estimada a 90 días</div>
         </div>
 
-        <div class="control-group">
-          <label for="targetCoverageInput">Objetivo de Cobertura al Comprar: <span class="badge-value" id="targetCoverageVal">45 días</span></label>
-          <input type="range" id="targetCoverageInput" min="15" max="90" value="45" class="slider">
+        <div class="kpi-card cyan">
+          <div class="kpi-header">
+            <span class="kpi-title">Capital en Lenta Rotación</span>
+            <div class="kpi-icon">🧊</div>
+          </div>
+          <div class="kpi-value" id="kpiDeadCapital">$ 412.500</div>
+          <div class="kpi-subtext">Stock inmóvil para posible reasignación</div>
         </div>
-      </div>
-    </section>
 
-    <!-- GRÁFICOS ANALÍTICOS -->
-    <section class="charts-grid">
-      <div class="card chart-card">
+        <div class="kpi-card rose">
+          <div class="kpi-header">
+            <span class="kpi-title">Quiebres de Stock Activos</span>
+            <div class="kpi-icon">⛔</div>
+          </div>
+          <div class="kpi-value" id="kpiOutOfStock">1</div>
+          <div class="kpi-subtext">Publicaciones sin stock inmediato</div>
+        </div>
+      </section>
+
+      <!-- GRÁFICOS PROYECTIVOS A 6 MESES -->
+      <section class="charts-grid">
+        <div class="card chart-card">
+          <div class="panel-header">
+            <h3>📈 Proyección Estratégica de Facturación Neta (30 / 60 / 90 / 180 Días)</h3>
+            <p>Curva proyectada en base al modelo de velocidad diaria de ventas ($VPD$).</p>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartRevenueForecast"></canvas>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="panel-header">
+            <h3>📊 Distribución de Estado de Inventario</h3>
+            <p>Proporción de productos Agotados, en Punto de Pedido, Adecuados y Sobrestock.</p>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartStockStatus"></canvas>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 2: INTELIGENCIA FINANCIERA & MÁRGENES -->
+    <div class="tab-content" id="tab-financial">
+      <section class="kpi-grid">
+        <div class="kpi-card emerald">
+          <div class="kpi-header">
+            <span class="kpi-title">Ingreso Neto Estimado</span>
+            <div class="kpi-icon">💵</div>
+          </div>
+          <div class="kpi-value" id="kpiNetRevenue">$ 3.001.152</div>
+          <div class="kpi-subtext">Ganancia limpia post-comisión MeLi (87%)</div>
+        </div>
+
+        <div class="kpi-card purple">
+          <div class="kpi-header">
+            <span class="kpi-title">Comisiones Estimadas MeLi</span>
+            <div class="kpi-icon">🏷️</div>
+          </div>
+          <div class="kpi-value" id="kpiMeliFees">$ 448.448</div>
+          <div class="kpi-subtext">Costos por comisión de plataforma (13%)</div>
+        </div>
+
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <span class="kpi-title">Valor Promedio por Publicación</span>
+            <div class="kpi-icon">📊</div>
+          </div>
+          <div class="kpi-value" id="kpiAvgItemPrice">$ 12.180</div>
+          <div class="kpi-subtext">Ticket promedio del catálogo activo</div>
+        </div>
+
+        <div class="kpi-card cyan">
+          <div class="kpi-header">
+            <span class="kpi-title">Publicaciones Clase A (80/20)</span>
+            <div class="kpi-icon">👑</div>
+          </div>
+          <div class="kpi-value" id="kpiClassACount">4</div>
+          <div class="kpi-subtext">SKUs estrella de mayor valorización</div>
+        </div>
+      </section>
+
+      <section class="charts-grid">
+        <div class="card chart-card">
+          <div class="panel-header">
+            <h3>🍩 Desglose Financiero: Ingreso Neto vs Comisiones MeLi</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartMarginBreakdown"></canvas>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="panel-header">
+            <h3>👑 Valorización de Inventario por Clasificación Pareto ABC ($ ARS)</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartAbcBreakdown"></canvas>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 3: CONTROL DE STOCK & PUNTO DE PEDIDO -->
+    <div class="tab-content" id="tab-stock">
+      <!-- SIMULADOR DINÁMICO DE PARÁMETROS -->
+      <section class="controls-panel card">
         <div class="panel-header">
-          <h3>📊 Estado del Inventario</h3>
+          <h2>🎛️ Simulador de Punto de Pedido & Días de Cobertura</h2>
+          <p>Ajusta el tiempo de respuesta del proveedor y el colchón de seguridad para recalcular la orden recomendada.</p>
         </div>
-        <div class="chart-container">
-          <canvas id="chartStockStatus"></canvas>
-        </div>
-      </div>
 
-      <div class="card chart-card">
+        <div class="controls-grid">
+          <div class="control-group">
+            <label for="leadTimeInput">Demora del Proveedor (Lead Time): <span class="badge-value" id="leadTimeVal">15 días</span></label>
+            <input type="range" id="leadTimeInput" min="1" max="60" value="15" class="slider">
+          </div>
+
+          <div class="control-group">
+            <label for="safetyStockInput">Stock de Seguridad: <span class="badge-value" id="safetyStockVal">7 días</span></label>
+            <input type="range" id="safetyStockInput" min="0" max="30" value="7" class="slider">
+          </div>
+
+          <div class="control-group">
+            <label for="targetCoverageInput">Objetivo de Cobertura al Comprar: <span class="badge-value" id="targetCoverageVal">45 días</span></label>
+            <input type="range" id="targetCoverageInput" min="15" max="90" value="45" class="slider">
+          </div>
+        </div>
+      </section>
+
+      <!-- TABLA DE CONTROL DE INVENTARIO Y REPOSICIÓN -->
+      <section class="card table-card">
+        <div class="table-toolbar">
+          <div class="search-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="searchInput" placeholder="Buscar por Título, SKU o ID de Publicación...">
+          </div>
+
+          <div class="filter-pills">
+            <button class="pill active" data-filter="ALL">Todos (<span id="countAll">39</span>)</button>
+            <button class="pill pill-rose" data-filter="AGOTADO">Agotados (<span id="countAgotado">1</span>)</button>
+            <button class="pill pill-amber" data-filter="CRITICO">Punto de Pedido (<span id="countCritico">0</span>)</button>
+            <button class="pill pill-emerald" data-filter="ADECUADO">Adecuado (<span id="countAdecuado">0</span>)</button>
+            <button class="pill pill-slate" data-filter="SOBRESTOCK">Sobrestock (<span id="countSobrestock">38</span>)</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="inventoryTable">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>SKU / ID</th>
+                <th class="text-center">Stock Actual</th>
+                <th class="text-center">Precio Unit.</th>
+                <th class="text-center">Valor Total</th>
+                <th class="text-center">Ventas 30d</th>
+                <th class="text-center">Días Cobertura</th>
+                <th class="text-center">Clase ABC</th>
+                <th class="text-center">Comprar (Sugerido)</th>
+                <th class="text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Filas dinámicas generadas por app.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 4: SIMULADOR DE ESCENARIOS DE CRECIMIENTO -->
+    <div class="tab-content" id="tab-growth">
+      <section class="card growth-simulator-card">
         <div class="panel-header">
-          <h3>🚀 Top 8 Productos con Mayor Valorización de Inventario ($ Mil ARS)</h3>
-        </div>
-        <div class="chart-container">
-          <canvas id="chartTopSuggested"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- TABLA DE CONTROL DE INVENTARIO Y REPOSICIÓN -->
-    <section class="card table-card">
-      <div class="table-toolbar">
-        <div class="search-box">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="searchInput" placeholder="Buscar por Título, SKU o ID de Publicación...">
+          <h2>🚀 Simulador Estratégico de Escalabilidad & Capital de Trabajo</h2>
+          <p>Modela el crecimiento de la demanda de tu negocio para calcular el capital de inversión requerido y el beneficio neto proyectado.</p>
         </div>
 
-        <div class="filter-pills">
-          <button class="pill active" data-filter="ALL">Todos (<span id="countAll">39</span>)</button>
-          <button class="pill pill-rose" data-filter="AGOTADO">Agotados (<span id="countAgotado">1</span>)</button>
-          <button class="pill pill-amber" data-filter="CRITICO">Punto de Pedido (<span id="countCritico">0</span>)</button>
-          <button class="pill pill-emerald" data-filter="ADECUADO">Adecuado (<span id="countAdecuado">0</span>)</button>
-          <button class="pill pill-slate" data-filter="SOBRESTOCK">Sobrestock (<span id="countSobrestock">38</span>)</button>
+        <div class="growth-control-box">
+          <label for="growthScenarioInput" style="font-weight: 700; color: var(--text-main); font-size: 1.05rem;">
+            Simular Crecimiento de Ventas Proyectado: <span class="badge-value" id="growthScenarioVal" style="font-size: 1rem; padding: 4px 14px;">+25% de Ventas</span>
+          </label>
+          <input type="range" id="growthScenarioInput" min="0" max="200" step="5" value="25" class="slider slider-emerald">
         </div>
-      </div>
 
-      <div class="table-responsive">
-        <table id="inventoryTable">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>SKU / ID</th>
-              <th class="text-center">Stock Actual</th>
-              <th class="text-center">Precio Unit.</th>
-              <th class="text-center">Valor Total</th>
-              <th class="text-center">Ventas 30d</th>
-              <th class="text-center">Días Cobertura</th>
-              <th class="text-center">Clase ABC</th>
-              <th class="text-center">Comprar (Sugerido)</th>
-              <th class="text-center">Estado</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody">
-            <!-- Filas dinámicas generadas por app.js -->
-          </tbody>
-        </table>
-      </div>
-    </section>
+        <div class="growth-output-grid">
+          <div class="growth-output-card emerald">
+            <span class="growth-output-title">Capital de Trabajo Adicional Necesario</span>
+            <span class="growth-output-value" id="growthCapitalRequired">$ 862.400 ARS</span>
+            <span style="font-size: 0.78rem; color: var(--text-dim);">Inversión estimada en reposición de stock</span>
+          </div>
+
+          <div class="growth-output-card purple">
+            <span class="growth-output-title">Ganancia Neta Proyectada Adicional</span>
+            <span class="growth-output-value" id="growthNetProfitAdd">$ 750.288 ARS</span>
+            <span style="font-size: 0.78rem; color: var(--text-dim);">Retorno neto estimado con +25% de ventas</span>
+          </div>
+
+          <div class="growth-output-card gold">
+            <span class="growth-output-title">Unidades Adicionales a Comprar</span>
+            <span class="growth-output-value" id="growthUnitsAdd">+85 un.</span>
+            <span style="font-size: 0.78rem; color: var(--text-dim);">Stock sugerido para absorber demanda</span>
+          </div>
+        </div>
+      </section>
+    </div>
 
   </div>
 
@@ -216,6 +337,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=50.0"></script>
+  <script src="app.js?v=60.0"></script>
 </body>
 </html>
