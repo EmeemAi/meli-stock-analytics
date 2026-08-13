@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE (CON SOPORTE JSONP)
+ * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE (JSONP PRIMARY LOADER)
  * ==============================================================================
  */
 
@@ -24,12 +24,9 @@ const state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  const savedUrl = localStorage.getItem('MELI_GAS_URL');
-  if (savedUrl && savedUrl.trim() !== '' && savedUrl !== 'mock-data.json') {
-    state.gasUrl = savedUrl.trim();
-  } else {
-    state.gasUrl = DEFAULT_ENDPOINT;
-  }
+  // Limpiar cualquier cache de localStorage previa
+  localStorage.removeItem('MELI_GAS_URL');
+  state.gasUrl = DEFAULT_ENDPOINT;
 
   initEventListeners();
   loadData();
@@ -85,14 +82,12 @@ function initEventListeners() {
   document.getElementById('btnSaveConfig').addEventListener('click', () => {
     const url = document.getElementById('gasUrlInput').value.trim() || DEFAULT_ENDPOINT;
     state.gasUrl = url;
-    localStorage.setItem('MELI_GAS_URL', url);
     modal.classList.remove('active');
     loadData();
   });
 
   document.getElementById('btnUseMock').addEventListener('click', () => {
     state.gasUrl = 'mock-data.json';
-    localStorage.setItem('MELI_GAS_URL', 'mock-data.json');
     modal.classList.remove('active');
     loadData();
   });
@@ -101,7 +96,7 @@ function initEventListeners() {
 }
 
 /**
- * Carga datos usando fetch y fallback infalible mediante JSONP (Script Injection)
+ * Carga principal mediante inyección de script JSONP (Sin restricciones CORS)
  */
 function loadData() {
   const syncText = document.getElementById('lastSyncText');
@@ -109,38 +104,24 @@ function loadData() {
 
   const baseUrl = state.gasUrl || DEFAULT_ENDPOINT;
 
-  // Definir callback global para JSONP
+  if (baseUrl === 'mock-data.json') {
+    fetch('mock-data.json')
+      .then(r => r.json())
+      .then(data => {
+        syncText.textContent = 'Modo Prueba (Mock Data)';
+        processReceivedData(data);
+      });
+    return;
+  }
+
+  // Callback global
   window.onMeliDataReceived = function(data) {
     if (!data) return;
     if (data.items) {
-      state.items = data.items;
-      if (data.config) {
-        state.config.lead_time_days = data.config.lead_time_days || 15;
-        state.config.safety_stock_days = data.config.safety_stock_days || 7;
-        state.config.target_coverage_days = data.config.target_coverage_days || 45;
-      }
-      syncText.textContent = `🟢 Conectado: ${state.items.length} publicaciones cargadas`;
-      recalculateMetrics();
+      processReceivedData(data);
     }
   };
 
-  // 1. Intentar por fetch estándar
-  fetch(baseUrl)
-    .then(res => res.json())
-    .then(data => {
-      if (data && data.items && data.items.length > 0) {
-        window.onMeliDataReceived(data);
-      } else {
-        loadViaJsonp(baseUrl);
-      }
-    })
-    .catch(() => {
-      // Fallback automático por JSONP si CORS o fetch falla
-      loadViaJsonp(baseUrl);
-    });
-}
-
-function loadViaJsonp(baseUrl) {
   const existingScript = document.getElementById('gasJsonpScript');
   if (existingScript) existingScript.remove();
 
@@ -149,15 +130,38 @@ function loadViaJsonp(baseUrl) {
   const sep = baseUrl.includes('?') ? '&' : '?';
   script.src = `${baseUrl}${sep}callback=onMeliDataReceived&t=${Date.now()}`;
   script.onerror = () => {
-    // Si falla completamente, cargar datos mock de respaldo
-    fetch('mock-data.json')
+    console.warn('JSONP loader error, falling back to standard fetch');
+    fetch(baseUrl)
       .then(r => r.json())
-      .then(data => {
-        document.getElementById('lastSyncText').textContent = 'Modo Prueba (Mock Data)';
-        window.onMeliDataReceived(data);
+      .then(data => processReceivedData(data))
+      .catch(() => {
+        syncText.textContent = 'Modo Prueba (Mock Data)';
       });
   };
+
   document.body.appendChild(script);
+}
+
+function processReceivedData(data) {
+  const syncText = document.getElementById('lastSyncText');
+  state.items = data.items || [];
+  if (data.config) {
+    state.config.lead_time_days = data.config.lead_time_days || 15;
+    state.config.safety_stock_days = data.config.safety_stock_days || 7;
+    state.config.target_coverage_days = data.config.target_coverage_days || 45;
+
+    document.getElementById('leadTimeInput').value = state.config.lead_time_days;
+    document.getElementById('leadTimeVal').textContent = `${state.config.lead_time_days} días`;
+
+    document.getElementById('safetyStockInput').value = state.config.safety_stock_days;
+    document.getElementById('safetyStockVal').textContent = `${state.config.safety_stock_days} días`;
+
+    document.getElementById('targetCoverageInput').value = state.config.target_coverage_days;
+    document.getElementById('targetCoverageVal').textContent = `${state.config.target_coverage_days} días`;
+  }
+
+  syncText.textContent = `🟢 Conectado: ${state.items.length} publicaciones cargadas`;
+  recalculateMetrics();
 }
 
 function recalculateMetrics() {
@@ -172,7 +176,7 @@ function recalculateMetrics() {
 
     if (item.stock === 0) {
       item.status = 'AGOTADO';
-      item.reorder_suggested = Math.ceil(vpd * target_coverage_days);
+      item.reorder_suggested = Math.ceil(vpd * targetCoverageDays);
     } else if (item.stock <= item.reorder_point) {
       item.status = 'CRITICO';
       item.reorder_suggested = Math.max(0, Math.ceil((vpd * targetCoverageDays) - item.stock));
