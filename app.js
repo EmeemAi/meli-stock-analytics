@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE (LIVE FORCE ENGINE)
+ * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE (DUAL METHOD: CSV & GAS)
  * ==============================================================================
  */
 
@@ -24,9 +24,12 @@ const state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Limpiar cualquier estado previo guardado en localStorage que pueda forzar datos mock
-  localStorage.clear();
-  state.gasUrl = DEFAULT_ENDPOINT;
+  const savedUrl = localStorage.getItem('MELI_GAS_URL');
+  if (savedUrl && savedUrl.trim() !== '' && savedUrl !== 'mock-data.json') {
+    state.gasUrl = savedUrl.trim();
+  } else {
+    state.gasUrl = DEFAULT_ENDPOINT;
+  }
 
   initEventListeners();
   loadData();
@@ -82,12 +85,14 @@ function initEventListeners() {
   document.getElementById('btnSaveConfig').addEventListener('click', () => {
     const url = document.getElementById('gasUrlInput').value.trim() || DEFAULT_ENDPOINT;
     state.gasUrl = url;
+    localStorage.setItem('MELI_GAS_URL', url);
     modal.classList.remove('active');
     loadData();
   });
 
   document.getElementById('btnUseMock').addEventListener('click', () => {
     state.gasUrl = 'mock-data.json';
+    localStorage.setItem('MELI_GAS_URL', 'mock-data.json');
     modal.classList.remove('active');
     loadData();
   });
@@ -96,13 +101,13 @@ function initEventListeners() {
 }
 
 /**
- * Carga principal de tus 39 publicaciones desde Google Apps Script por JSONP
+ * Carga datos desde Google Apps Script O desde CSV publicado de Google Sheet
  */
 function loadData() {
   const syncText = document.getElementById('lastSyncText');
   const syncDot = document.querySelector('#syncStatus .status-dot');
   
-  syncText.textContent = 'Cargando publicaciones reales de Mercado Libre...';
+  syncText.textContent = 'Cargando publicaciones...';
   if (syncDot) syncDot.className = 'status-dot amber';
 
   const baseUrl = state.gasUrl || DEFAULT_ENDPOINT;
@@ -112,6 +117,13 @@ function loadData() {
     return;
   }
 
+  // Si el usuario ingresó un enlace de CSV publicado de Google Sheet
+  if (baseUrl.includes('pub?output=csv') || baseUrl.includes('output=csv')) {
+    loadFromCsvUrl(baseUrl);
+    return;
+  }
+
+  // Intento 1: Carga por JSONP desde Apps Script
   let jsonpLoaded = false;
 
   window.onMeliDataReceived = function(data) {
@@ -120,8 +132,10 @@ function loadData() {
       if (syncDot) syncDot.className = 'status-dot green';
       syncText.textContent = `🟢 Conectado: ${data.items.length} publicaciones cargadas`;
       processReceivedData(data);
+    } else if (data && data.error) {
+      console.warn('Google Apps Script message:', data.error);
+      loadMockData(`⚠️ Error API (${data.error})`);
     } else {
-      console.warn('Respuesta sin ítems, intentando recarga');
       loadMockData('Modo Demostración');
     }
   };
@@ -148,6 +162,67 @@ function loadData() {
   };
 
   document.body.appendChild(script);
+}
+
+function loadFromCsvUrl(csvUrl) {
+  const syncText = document.getElementById('lastSyncText');
+  const syncDot = document.querySelector('#syncStatus .status-dot');
+
+  fetch(csvUrl)
+    .then(res => res.text())
+    .then(csvText => {
+      const lines = csvText.split('\n').filter(l => l.trim() !== '');
+      if (lines.length <= 1) throw new Error('CSV sin datos');
+
+      const items = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvLine(lines[i]);
+        if (cols.length >= 4) {
+          items.push({
+            id: cols[0] || `ITEM_${i}`,
+            sku: cols[1] || cols[0] || `SKU_${i}`,
+            title: cols[2] || 'Publicación Mercado Libre',
+            stock: Number(cols[3]) || 0,
+            sales_30d: Number(cols[4]) || 0,
+            sales_7d: Number(cols[5]) || 0,
+            vpd: Number(cols[6]) || 0,
+            coverage_days: cols[7] || '∞ (Sin Ventas)',
+            reorder_point: Number(cols[8]) || 0,
+            reorder_suggested: Number(cols[9]) || 0,
+            status: cols[10] || 'SOBRESTOCK',
+            thumbnail: cols[11] || ''
+          });
+        }
+      }
+
+      if (syncDot) syncDot.className = 'status-dot green';
+      syncText.textContent = `🟢 Conectado a Google Sheet: ${items.length} publicaciones cargadas`;
+      processReceivedData({ items });
+    })
+    .catch(err => {
+      console.error('Error cargando CSV:', err);
+      loadMockData('⚠️ Error al leer CSV de Google Sheet');
+    });
+}
+
+function parseCsvLine(line) {
+  const values = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      values.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  values.push(current.trim());
+  return values;
 }
 
 function fallbackFetch(baseUrl) {
