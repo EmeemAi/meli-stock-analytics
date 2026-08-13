@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mercado Libre Analytics - Panel de Control de Stock & Rotación</title>
+  <title>Meli Stock Analytics - Dashboard Ejecutivo de Control de Inventario</title>
   <meta name="description" content="Dashboard interactivo para análisis de métricas de rotación, días de cobertura y gestión de punto de pedido para Mercado Libre.">
   
   <!-- Google Fonts: Inter & Outfit -->
@@ -14,7 +14,7 @@
   <!-- Chart.js CDN para gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=10.0">
+  <link rel="stylesheet" href="styles.css?v=30.0">
 </head>
 <body>
   <div class="app-container">
@@ -29,8 +29,11 @@
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
         </div>
-        <div>
-          <h1>Meli Stock Analytics</h1>
+        <div class="header-title-wrapper">
+          <div class="title-row">
+            <h1>Meli Stock Analytics</h1>
+            <span class="seller-badge">DARÍO • Vendedor Oficial</span>
+          </div>
           <p class="subtitle">Control de Rotación y Sugerencia de Reposición en Tiempo Real</p>
         </div>
       </div>
@@ -59,7 +62,7 @@
           <div class="kpi-icon">📦</div>
         </div>
         <div class="kpi-value" id="kpiTotalItems">39</div>
-        <div class="kpi-subtext">SKUs en seguimiento</div>
+        <div class="kpi-subtext">SKUs activos en seguimiento</div>
       </div>
 
       <div class="kpi-card rose">
@@ -86,7 +89,7 @@
           <div class="kpi-icon">🛒</div>
         </div>
         <div class="kpi-value" id="kpiTotalSuggestedQty">0</div>
-        <div class="kpi-subtext">Sugerencia total reposición</div>
+        <div class="kpi-subtext">Sugerencia total de reposición</div>
       </div>
     </section>
 
@@ -198,6 +201,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=10.0"></script>
+  <script src="app.js?v=30.0"></script>
 </body>
 </html>
