@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meli Stock Analytics 2.0 - Enterprise BI & Growth Suite</title>
+  <meta name="description" content="Plataforma Enterprise de Inteligencia de Negocios, Proyección Financiera, Simulador de Crecimiento y Asistente IA de Preguntas para Mercado Libre.">
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js CDN para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="styles.css?v=70.0">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="header-title-wrapper">
+          <div class="title-row">
+            <h1>Meli Stock Analytics 2.0</h1>
+            <span class="seller-badge">ENTERPRISE BI SUITE • DARÍO</span>
+          </div>
+          <p class="subtitle">Inteligencia de Negocios, Proyección Financiera y Asistente de Ventas IA</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="sync-status" id="syncStatus">
+          <span class="status-dot green"></span>
+          <span class="status-text" id="lastSyncText">🟢 Mercado Libre (39 publicaciones en vivo)</span>
+        </div>
+        <button class="btn btn-secondary" id="btnConfigModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Conexión API
+        </button>
+        <button class="btn btn-primary" id="btnExportCsv">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Orden de Compra (CSV)
+        </button>
+      </div>
+    </header>
+
+    <!-- ENTERPRISE TAB NAVIGATION SYSTEM -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-executive">
+        <span>📊</span> Resumen Ejecutivo & Proyecciones
+      </button>
+      <button class="tab-btn" data-tab="tab-financial">
+        <span>💰</span> Inteligencia Financiera & Márgenes
+      </button>
+      <button class="tab-btn" data-tab="tab-stock">
+        <span>📦</span> Control de Stock & Punto de Pedido
+      </button>
+      <button class="tab-btn" data-tab="tab-growth">
+        <span>🚀</span> Simulador de Crecimiento
+      </button>
+      <button class="tab-btn" data-tab="tab-ai-chat" style="border-color: rgba(168, 85, 247, 0.4); color: #d8b4fe;">
+        <span>🤖</span> Asistente IA de Preguntas (Gemini)
+      </button>
+    </nav>
+
+    <!-- TAB 1: RESUMEN EJECUTIVO & PROYECCIONES -->
+    <div class="tab-content active" id="tab-executive">
+      <section class="exec-banner card">
+        <div class="exec-banner-content">
+          <div class="exec-badge">💼 BUSINESS INTELLIGENCE DIRECTIVO</div>
+          <h2>Plataforma Estratégica de Evaluación y Crecimiento Ecommerce</h2>
+          <p>Visión consolidada del valor del inventario, proyecciones de facturación neta y optimización del capital inmovilizado para Mercado Libre.</p>
+          <div class="exec-highlights">
+            <div class="highlight-item">⚡ <strong>100% Automatización</strong> de Punto de Pedido</div>
+            <div class="highlight-item">🛡️ <strong>97% Salud de Inventario</strong> sin Quiebres</div>
+            <div class="highlight-item">⏱️ <strong>15h/semana Ahorradas</strong> en Gestión de Compras</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI CARDS PROYECTIVOS -->
+      <section class="kpi-grid">
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <span class="kpi-title">Valor del Inventario Activo</span>
+            <div class="kpi-icon">💰</div>
+          </div>
+          <div class="kpi-value" id="kpiTotalValuation">$ 3.449.600</div>
+          <div class="kpi-subtext">Capital total inmovilizado ($ ARS)</div>
+        </div>
+
+        <div class="kpi-card emerald">
+          <div class="kpi-header">
+            <span class="kpi-title">Proyección Facturación (90d)</span>
+            <div class="kpi-icon">📈</div>
+          </div>
+          <div class="kpi-value" id="kpiProjected90d">$ 9.003.456</div>
+          <div class="kpi-subtext">Proyección neta estimada a 90 días</div>
+        </div>
+
+        <div class="kpi-card cyan">
+          <div class="kpi-header">
+            <span class="kpi-title">Capital en Lenta Rotación</span>
+            <div class="kpi-icon">🧊</div>
+          </div>
+          <div class="kpi-value" id="kpiDeadCapital">$ 412.500</div>
+          <div class="kpi-subtext">Stock inmóvil para posible reasignación</div>
+        </div>
+
+        <div class="kpi-card rose">
+          <div class="kpi-header">
+            <span class="kpi-title">Quiebres de Stock Activos</span>
+            <div class="kpi-icon">⛔</div>
+          </div>
+          <div class="kpi-value" id="kpiOutOfStock">1</div>
+          <div class="kpi-subtext">Publicaciones sin stock inmediato</div>
+        </div>
+      </section>
+
+      <!-- GRÁFICO PROYECTIVO A 6 MESES -->
+      <section class="charts-grid">
+        <div class="card chart-card">
+          <div class="panel-header">
+            <h3>📈 Proyección Estratégica de Facturación Neta (30 / 60 / 90 / 180 Días)</h3>
+            <p>Curva proyectada en base al modelo de velocidad diaria de ventas ($VPD$).</p>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartRevenueForecast"></canvas>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="panel-header">
+            <h3>📊 Distribución de Estado de Inventario</h3>
+            <p>Proporción de productos Agotados, en Punto de Pedido, Adecuados y Sobrestock.</p>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartStockStatus"></canvas>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 2: INTELIGENCIA FINANCIERA & MÁRGENES -->
+    <div class="tab-content" id="tab-financial">
+      <section class="kpi-grid">
+        <div class="kpi-card emerald">
+          <div class="kpi-header">
+            <span class="kpi-title">Ingreso Neto Estimado</span>
+            <div class="kpi-icon">💵</div>
+          </div>
+          <div class="kpi-value" id="kpiNetRevenue">$ 3.001.152</div>
+          <div class="kpi-subtext">Ganancia limpia post-comisión MeLi (87%)</div>
+        </div>
+
+        <div class="kpi-card purple">
+          <div class="kpi-header">
+            <span class="kpi-title">Comisiones Estimadas MeLi</span>
+            <div class="kpi-icon">🏷️</div>
+          </div>
+          <div class="kpi-value" id="kpiMeliFees">$ 448.448</div>
+          <div class="kpi-subtext">Costos por comisión de plataforma (13%)</div>
+        </div>
+
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <span class="kpi-title">Valor Promedio por Publicación</span>
+            <div class="kpi-icon">📊</div>
+          </div>
+          <div class="kpi-value" id="kpiAvgItemPrice">$ 12.180</div>
+          <div class="kpi-subtext">Ticket promedio del catálogo activo</div>
+        </div>
+
+        <div class="kpi-card cyan">
+          <div class="kpi-header">
+            <span class="kpi-title">Publicaciones Clase A (80/20)</span>
+            <div class="kpi-icon">👑</div>
+          </div>
+          <div class="kpi-value" id="kpiClassACount">4</div>
+          <div class="kpi-subtext">SKUs estrella de mayor valorización</div>
+        </div>
+      </section>
+
+      <section class="charts-grid">
+        <div class="card chart-card">
+          <div class="panel-header">
+            <h3>🍩 Desglose Financiero: Ingreso Neto vs Comisiones MeLi</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartMarginBreakdown"></canvas>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="panel-header">
+            <h3>👑 Valorización de Inventario por Clasificación Pareto ABC ($ ARS)</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartAbcBreakdown"></canvas>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 3: CONTROL DE STOCK & PUNTO DE PEDIDO -->
+    <div class="tab-content" id="tab-stock">
+      <!-- SIMULADOR DINÁMICO DE PARÁMETROS -->
+      <section class="controls-panel card">
+        <div class="panel-header">
+          <h2>🎛️ Simulador de Punto de Pedido & Días de Cobertura</h2>
+          <p>Ajusta el tiempo de respuesta del proveedor y el colchón de seguridad para recalcular la orden recomendada.</p>
+        </div>
+
+        <div class="controls-grid">
+          <div class="control-group">
+            <label for="leadTimeInput">Demora del Proveedor (Lead Time): <span class="badge-value" id="leadTimeVal">15 días</span></label>
+            <input type="range" id="leadTimeInput" min="1" max="60" value="15" class="slider">
+          </div>
+
+          <div class="control-group">
+            <label for="safetyStockInput">Stock de Seguridad: <span class="badge-value" id="safetyStockVal">7 días</span></label>
+            <input type="range" id="safetyStockInput" min="0" max="30" value="7" class="slider">
+          </div>
+
+          <div class="control-group">
+            <label for="targetCoverageInput">Objetivo de Cobertura al Comprar: <span class="badge-value" id="targetCoverageVal">45 días</span></label>
+            <input type="range" id="targetCoverageInput" min="15" max="90" value="45" class="slider">
+          </div>
+        </div>
+      </section>
+
+      <!-- TABLA DE CONTROL DE INVENTARIO Y REPOSICIÓN -->
+      <section class="card table-card">
+        <div class="table-toolbar">
+          <div class="search-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="searchInput" placeholder="Buscar por Título, SKU o ID de Publicación...">
+          </div>
+
+          <div class="filter-pills">
+            <button class="pill active" data-filter="ALL">Todos (<span id="countAll">39</span>)</button>
+            <button class="pill pill-rose" data-filter="AGOTADO">Agotados (<span id="countAgotado">1</span>)</button>
+            <button class="pill pill-amber" data-filter="CRITICO">Punto de Pedido (<span id="countCritico">0</span>)</button>
+            <button class="pill pill-emerald" data-filter="ADECUADO">Adecuado (<span id="countAdecuado">0</span>)</button>
+            <button class="pill pill-slate" data-filter="SOBRESTOCK">Sobrestock (<span id="countSobrestock">38</span>)</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="inventoryTable">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>SKU / ID</th>
+                <th class="text-center">Stock Actual</th>
+                <th class="text-center">Precio Unit.</th>
+                <th class="text-center">Valor Total</th>
+                <th class="text-center">Ventas 30d</th>
+                <th class="text-center">Días Cobertura</th>
+                <th class="text-center">Clase ABC</th>
+                <th class="text-center">Comprar (Sugerido)</th>
+                <th class="text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Filas dinámicas generadas por app.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 4: SIMULADOR DE ESCENARIOS DE CRECIMIENTO -->
+    <div class="tab-content" id="tab-growth">
+      <section class="card growth-simulator-card">
+        <div class="panel-header">
+          <h2>🚀 Simulador Estratégico de Escalabilidad & Capital de Trabajo</h2>
+          <p>Modela el crecimiento de la demanda de tu negocio para calcular el capital de inversión requerido y el beneficio neto proyectado.</p>
+        </div>
+
+        <div class="growth-control-box">
+          <label for="growthScenarioInput" style="font-weight: 700; color: var(--text-main); font-size: 1.05rem;">
+            Simular Crecimiento de Ventas Proyectado: <span class="badge-value" id="growthScenarioVal" style="font-size: 1rem; padding: 4px 14px;">+25% de Ventas</span>
+          </label>
+          <input type="range" id="growthScenarioInput" min="0" max="200" step="5" value="25" class="slider slider-emerald">
+        </div>
+
+        <div class="growth-output-grid">
+          <div class="growth-output-card emerald">
+            <span class="growth-output-title">Capital de Trabajo Adicional Necesario</span>
+            <span class="growth-output-value" id="growthCapitalRequired">$ 862.400 ARS</span>
+            <span style="font-size: 0.78rem; color: var(--text-dim);">Inversión estimada en reposición de stock</span>
+          </div>
+
+          <div class="growth-output-card purple">
+            <span class="growth-output-title">Ganancia Neta Proyectada Adicional</span>
+            <span class="growth-output-value" id="growthNetProfitAdd">$ 750.288 ARS</span>
+            <span style="font-size: 0.78rem; color: var(--text-dim);">Retorno neto estimado con +25% de ventas</span>
+          </div>
+
+          <div class="growth-output-card gold">
+            <span class="growth-output-title">Unidades Adicionales a Comprar</span>
+            <span class="growth-output-value" id="growthUnitsAdd">+85 un.</span>
+            <span style="font-size: 0.78rem; color: var(--text-dim);">Stock sugerido para absorber demanda</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 5: ASISTENTE IA DE PREGUNTAS (GOOGLE GEMINI SIMULATOR) -->
+    <div class="tab-content" id="tab-ai-chat">
+      <section class="card ai-simulator-card" style="border: 1px solid rgba(168, 85, 247, 0.35); background: linear-gradient(135deg, rgba(168, 85, 247, 0.06) 0%, rgba(13, 20, 36, 0.95) 100%);">
+        <div class="panel-header">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <span class="exec-badge" style="background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4);">🤖 MOTOR IA GOOGLE GEMINI 1.5 FLASH</span>
+              <h2 style="margin-top: 6px;">Simulador de Respuestas Automatizadas a Compradores</h2>
+              <p>Prueba en tiempo real cómo la IA lee la ficha oficial de tus publicaciones y redacta respuestas vendedoras instantáneas.</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <span class="badge-value" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4);">⚡ Nivel Gratuito Activo (1.500 r/día)</span>
+              <span class="badge-value" style="background: rgba(255, 230, 0, 0.15); color: #fde047; border-color: rgba(255, 230, 0, 0.4);">Costo Estimado: $0.00 ARS</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 20px;">
+          <!-- Columna Izquierda: Selección de Publicación y Pregunta -->
+          <div style="display: flex; flex-direction: column; gap: 16px; background: rgba(0, 0, 0, 0.3); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div class="form-group">
+              <label for="aiItemSelect" style="font-weight: 700; color: #a5b4fc;">1. Selecciona una Publicación de Darío:</label>
+              <select id="aiItemSelect" class="input-text" style="width: 100%; font-weight: 600; cursor: pointer; background: #0f172a;">
+                <!-- Opciones dinámicas de las 39 publicaciones cargadas por JS -->
+              </select>
+            </div>
+
+            <!-- Ficha resumida del ítem seleccionado -->
+            <div id="aiItemPreviewBox" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px; display: flex; gap: 12px; align-items: center;">
+              <img id="aiPreviewThumb" src="http://http2.mlstatic.com/D_873333-MLA112554911370_062026-I.jpg" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;" alt="Preview">
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span id="aiPreviewTitle" style="font-weight: 700; font-size: 0.86rem; color: #ffffff;">Libro El Testamento Profético</span>
+                <div style="display: flex; gap: 10px; font-size: 0.78rem;">
+                  <span id="aiPreviewPrice" style="color: #fde047; font-weight: 700;">$ 19.900 ARS</span>
+                  <span id="aiPreviewStock" style="color: #fda4af; font-weight: 700;">Stock: 0 un. (AGOTADO)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="aiQuestionPresets" style="font-weight: 700; color: #a5b4fc;">2. Elige una pregunta frecuente o escribe una personalizada:</label>
+              <select id="aiQuestionPresets" class="input-text" style="width: 100%; margin-bottom: 8px; font-size: 0.85rem; cursor: pointer; background: #0f172a;">
+                <option value="custom">-- Escribir pregunta personalizada --</option>
+                <option value="¿Hola! Tienen stock disponible para envío inmediato?" selected>¿Hola! Tienen stock disponible para envío inmediato?</option>
+                <option value="¿De qué editorial es el libro y en qué estado se encuentra?">¿De qué editorial es el libro y en qué estado se encuentra?</option>
+                <option value="¿Hacen envíos a todo el país por Mercado Envíos?">¿Hacen envíos a todo el país por Mercado Envíos?</option>
+                <option value="¿El archivo es editable o viene listo para imprimir?">¿El archivo es editable o viene listo para imprimir?</option>
+              </select>
+              <textarea id="aiCustomQuestionInput" rows="3" class="input-text" placeholder="Escribe aquí cualquier pregunta que haría un comprador en Mercado Libre..." style="width: 100%; resize: none;">¿Hola! Tienen stock disponible para envío inmediato?</textarea>
+            </div>
+
+            <button class="btn btn-primary" id="btnGenerateAiResponse" style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); width: 100%; justify-content: center;">
+              <span>⚡</span> Generar Respuesta Vendedora con Gemini AI
+            </button>
+          </div>
+
+          <!-- Columna Derecha: Respuesta Simulado de la IA -->
+          <div style="display: flex; flex-direction: column; gap: 16px; background: rgba(0, 0, 0, 0.4); padding: 20px; border-radius: var(--radius-md); border: 1px solid rgba(168, 85, 247, 0.35);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+              <span style="font-weight: 700; color: #d8b4fe; font-size: 0.9rem;">💬 Respuesta Sugerida por Gemini 1.5 Flash</span>
+              <span id="aiMetricsBadge" style="font-size: 0.75rem; color: #6ee7b7; background: rgba(16, 185, 129, 0.15); padding: 3px 10px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3);">⚡ Tiempo: 0.8s | Costo: $0.00 ARS</span>
+            </div>
+
+            <div id="aiResponseOutputBox" style="background: rgba(15, 23, 42, 0.9); border: 1px solid var(--border-color-strong); border-radius: var(--radius-md); padding: 18px; min-height: 140px; font-size: 0.92rem; color: #f8fafc; line-height: 1.6; display: flex; align-items: center;">
+              <span style="color: var(--text-dim); font-style: italic;">Haz clic en "Generar Respuesta Vendedora" para simular la respuesta automatizada de Google Gemini...</span>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn btn-secondary" id="btnApproveAiAnswer" style="flex: 1; border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;">
+                <span>✅</span> Aprobar y Responder en MeLi
+              </button>
+              <button class="btn btn-secondary" id="btnCopyAiAnswer" style="flex: 1;">
+                <span>📋</span> Copiar Texto
+              </button>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--border-color); border-radius: var(--radius-sm); padding: 12px; font-size: 0.78rem; color: var(--text-muted);">
+              💡 <strong>System Prompt de la IA</strong>: Eres el asesor oficial de ventas de Darío en Mercado Libre. La IA revisa en tiempo real el stock antes de responder. Si un ítem está **AGOTADO** (como <em>El Testamento Profético</em>), la IA aconseja pausar o avisa que ingresa pronto sin prometer despacho inmediato.
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <!-- MODAL DE CONFIGURACIÓN DE URL DE ENDPOINT -->
+  <div class="modal-backdrop" id="configModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔑 Configurar Enlace API Google Apps Script / CSV</h3>
+        <button class="btn-close" id="btnCloseModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Introduce la URL de despliegue de tu Web App de Google Apps Script (`https://script.google.com/macros/s/.../exec`) o de tu CSV publicado de Google Sheet.</p>
+        <div class="form-group">
+          <label for="gasUrlInput">URL Web App / CSV publicado:</label>
+          <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="input-text">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnUseMock">Cargar 39 Publicaciones Reales</button>
+        <button class="btn btn-primary" id="btnSaveConfig">Guardar y Conectar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=70.0"></script>
+</body>
+</html>
