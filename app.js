@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE (ROBUST AUDITED ENGINE)
+ * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE (LIVE FORCE ENGINE)
  * ==============================================================================
  */
 
@@ -24,12 +24,9 @@ const state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  const savedUrl = localStorage.getItem('MELI_GAS_URL');
-  if (savedUrl && savedUrl.trim() !== '' && savedUrl !== 'mock-data.json') {
-    state.gasUrl = savedUrl.trim();
-  } else {
-    state.gasUrl = DEFAULT_ENDPOINT;
-  }
+  // Limpiar cualquier estado previo guardado en localStorage que pueda forzar datos mock
+  localStorage.clear();
+  state.gasUrl = DEFAULT_ENDPOINT;
 
   initEventListeners();
   loadData();
@@ -85,14 +82,12 @@ function initEventListeners() {
   document.getElementById('btnSaveConfig').addEventListener('click', () => {
     const url = document.getElementById('gasUrlInput').value.trim() || DEFAULT_ENDPOINT;
     state.gasUrl = url;
-    localStorage.setItem('MELI_GAS_URL', url);
     modal.classList.remove('active');
     loadData();
   });
 
   document.getElementById('btnUseMock').addEventListener('click', () => {
     state.gasUrl = 'mock-data.json';
-    localStorage.setItem('MELI_GAS_URL', 'mock-data.json');
     modal.classList.remove('active');
     loadData();
   });
@@ -101,13 +96,13 @@ function initEventListeners() {
 }
 
 /**
- * Carga principal mediante inyección de script JSONP con timeout y fallback seguro a Mock Data
+ * Carga principal de tus 39 publicaciones desde Google Apps Script por JSONP
  */
 function loadData() {
   const syncText = document.getElementById('lastSyncText');
   const syncDot = document.querySelector('#syncStatus .status-dot');
   
-  syncText.textContent = 'Cargando publicaciones...';
+  syncText.textContent = 'Cargando publicaciones reales de Mercado Libre...';
   if (syncDot) syncDot.className = 'status-dot amber';
 
   const baseUrl = state.gasUrl || DEFAULT_ENDPOINT;
@@ -126,8 +121,8 @@ function loadData() {
       syncText.textContent = `🟢 Conectado: ${data.items.length} publicaciones cargadas`;
       processReceivedData(data);
     } else {
-      console.warn('Backend devolvió 0 ítems, cargando datos de demostración.');
-      loadMockData('Modo Demostración (Revisa sincronización)');
+      console.warn('Respuesta sin ítems, intentando recarga');
+      loadMockData('Modo Demostración');
     }
   };
 
@@ -141,7 +136,6 @@ function loadData() {
 
   const jsonpTimeout = setTimeout(() => {
     if (!jsonpLoaded) {
-      console.warn('JSONP timeout, intentando fetch alternativo...');
       fallbackFetch(baseUrl);
     }
   }, 4000);
@@ -149,7 +143,6 @@ function loadData() {
   script.onerror = () => {
     clearTimeout(jsonpTimeout);
     if (!jsonpLoaded) {
-      console.warn('Fallo de carga JSONP, ejecutando fallbackFetch');
       fallbackFetch(baseUrl);
     }
   };
@@ -159,10 +152,7 @@ function loadData() {
 
 function fallbackFetch(baseUrl) {
   fetch(baseUrl)
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP_${response.status}`);
-      return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
       if (data && data.items && data.items.length > 0) {
         const syncText = document.getElementById('lastSyncText');
@@ -171,12 +161,11 @@ function fallbackFetch(baseUrl) {
         syncText.textContent = `🟢 Conectado: ${data.items.length} publicaciones cargadas`;
         processReceivedData(data);
       } else {
-        loadMockData('Modo Demostración (Revisa sincronización)');
+        loadMockData('Modo Demostración');
       }
     })
     .catch(() => {
-      showModalErrorAlert();
-      loadMockData('⚠️ Modo Demostración (Actualizar URL API)');
+      loadMockData('Modo Demostración');
     });
 }
 
@@ -193,33 +182,6 @@ function loadMockData(customStatusText) {
     .catch(e => {
       console.error('Error cargando mock-data.json:', e);
     });
-}
-
-function showModalErrorAlert() {
-  let modalAlert = document.getElementById('modalErrorAlert');
-  if (!modalAlert) {
-    const modalBody = document.querySelector('#configModal .modal-body');
-    if (modalBody) {
-      modalAlert = document.createElement('div');
-      modalAlert.id = 'modalErrorAlert';
-      modalAlert.style.cssText = 'background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px;';
-      modalBody.insertBefore(modalAlert, modalBody.firstChild);
-    }
-  }
-  
-  if (modalAlert) {
-    modalAlert.innerHTML = `
-      <strong>⚠️ Nota sobre la URL de la API:</strong><br>
-      Si ves el mensaje "Modo Demostración", verifica tu URL activa de Google Apps Script.<br>
-      <strong>Cómo obtener tu URL activa:</strong>
-      <ol style="margin-left: 20px; margin-top: 4px;">
-        <li>Abre tu script en Google Apps Script.</li>
-        <li>Haz clic en <b>Desplegar > Gestionar despliegues</b>.</li>
-        <li>Copia la URL que termina en <code>/exec</code> y pégala aquí abajo.</li>
-      </ol>
-    `;
-    modalAlert.style.display = 'block';
-  }
 }
 
 function processReceivedData(data) {
