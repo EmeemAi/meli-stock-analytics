@@ -11,7 +11,6 @@ const DEFAULT_CONFIG = {
   MELI_SITE_ID: 'MLA'
 };
 
-// Credenciales fijas activas generadas para la aplicación DARIODAPP
 const ACTIVE_CREDENTIALS = {
   CLIENT_ID: '4488794762859008',
   CLIENT_SECRET: 'lQZNoEJtnwlSGqLLyhDsFlKCwVXdgRqV',
@@ -49,7 +48,6 @@ function setupSpreadsheet() {
     }
   });
 
-  // Forzar actualización de la pestaña Config con credenciales válidas
   const configSheet = ss.getSheetByName('Config');
   configSheet.clear();
   configSheet.getRange(1, 1, 1, 3).setValues([['Parametro', 'Valor', 'Descripcion']]).setFontWeight('bold').setBackground('#1e293b').setFontColor('#ffffff');
@@ -67,7 +65,6 @@ function setupSpreadsheet() {
 
   configSheet.getRange(2, 1, defaultConfigRows.length, 3).setValues(defaultConfigRows);
 
-  // Guardar en propiedades de usuario
   const props = PropertiesService.getUserProperties();
   props.setProperty('ACCESS_TOKEN', ACTIVE_CREDENTIALS.ACCESS_TOKEN);
 
@@ -300,18 +297,18 @@ function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     if (!ss) {
-      return responseJson({ error: 'Spreadsheet no activo' });
+      return responseOutput({ error: 'Spreadsheet no activo' }, e);
     }
 
     const rotationSheet = ss.getSheetByName('Analisis_Rotacion');
 
     if (!rotationSheet) {
-      return responseJson({ error: "La hoja 'Analisis_Rotacion' no ha sido creada. Ejecuta la sincronización." });
+      return responseOutput({ error: "La hoja 'Analisis_Rotacion' no ha sido creada. Ejecuta la sincronización." }, e);
     }
 
     const data = rotationSheet.getDataRange().getValues();
     if (data.length <= 1) {
-      return responseJson({ items: [], config: {}, updated: new Date().toISOString() });
+      return responseOutput({ items: [], config: {}, updated: new Date().toISOString() }, e);
     }
 
     const headers = data[0];
@@ -338,7 +335,7 @@ function doGet(e) {
     let config = {};
     try { config = getConfig(); } catch (err) {}
 
-    return responseJson({
+    const payload = {
       status: 'success',
       updated_at: new Date().toISOString(),
       config: {
@@ -354,14 +351,25 @@ function doGet(e) {
         overstock: items.filter(i => i.status === 'SOBRESTOCK').length
       },
       items: items
-    });
+    };
+
+    return responseOutput(payload, e);
 
   } catch (err) {
-    return responseJson({ error: err.toString() });
+    return responseOutput({ error: err.toString() }, e);
   }
 }
 
-function responseJson(payload) {
-  return ContentService.createTextOutput(JSON.stringify(payload))
+function responseOutput(payload, e) {
+  const jsonString = JSON.stringify(payload);
+  
+  // Soporte JSONP (Supera restricciones CORS de cualquier navegador)
+  const cb = e && e.parameter && (e.parameter.callback || e.parameter.prefix);
+  if (cb) {
+    return ContentService.createTextOutput(cb + '(' + jsonString + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  
+  return ContentService.createTextOutput(jsonString)
     .setMimeType(ContentService.MimeType.JSON);
 }
