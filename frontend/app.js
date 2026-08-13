@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE (JSONP PRIMARY LOADER)
+ * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE (ROBUST AUDITED ENGINE)
  * ==============================================================================
  */
 
@@ -24,9 +24,12 @@ const state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Limpiar cualquier cache de localStorage previa
-  localStorage.removeItem('MELI_GAS_URL');
-  state.gasUrl = DEFAULT_ENDPOINT;
+  const savedUrl = localStorage.getItem('MELI_GAS_URL');
+  if (savedUrl && savedUrl.trim() !== '' && savedUrl !== 'mock-data.json') {
+    state.gasUrl = savedUrl.trim();
+  } else {
+    state.gasUrl = DEFAULT_ENDPOINT;
+  }
 
   initEventListeners();
   loadData();
@@ -82,12 +85,14 @@ function initEventListeners() {
   document.getElementById('btnSaveConfig').addEventListener('click', () => {
     const url = document.getElementById('gasUrlInput').value.trim() || DEFAULT_ENDPOINT;
     state.gasUrl = url;
+    localStorage.setItem('MELI_GAS_URL', url);
     modal.classList.remove('active');
     loadData();
   });
 
   document.getElementById('btnUseMock').addEventListener('click', () => {
     state.gasUrl = 'mock-data.json';
+    localStorage.setItem('MELI_GAS_URL', 'mock-data.json');
     modal.classList.remove('active');
     loadData();
   });
@@ -96,29 +101,33 @@ function initEventListeners() {
 }
 
 /**
- * Carga principal mediante inyección de script JSONP (Sin restricciones CORS)
+ * Carga principal mediante inyección de script JSONP con timeout y fallback seguro a Mock Data
  */
 function loadData() {
   const syncText = document.getElementById('lastSyncText');
-  syncText.textContent = 'Cargando publicaciones reales de MeLi...';
+  const syncDot = document.querySelector('#syncStatus .status-dot');
+  
+  syncText.textContent = 'Cargando publicaciones...';
+  if (syncDot) syncDot.className = 'status-dot amber';
 
   const baseUrl = state.gasUrl || DEFAULT_ENDPOINT;
 
   if (baseUrl === 'mock-data.json') {
-    fetch('mock-data.json')
-      .then(r => r.json())
-      .then(data => {
-        syncText.textContent = 'Modo Prueba (Mock Data)';
-        processReceivedData(data);
-      });
+    loadMockData('Modo Prueba (Datos de Demostración)');
     return;
   }
 
-  // Callback global
+  let jsonpLoaded = false;
+
   window.onMeliDataReceived = function(data) {
-    if (!data) return;
-    if (data.items) {
+    jsonpLoaded = true;
+    if (data && data.items && data.items.length > 0) {
+      if (syncDot) syncDot.className = 'status-dot green';
+      syncText.textContent = `🟢 Conectado: ${data.items.length} publicaciones cargadas`;
       processReceivedData(data);
+    } else {
+      console.warn('Backend devolvió 0 ítems, cargando datos de demostración.');
+      loadMockData('Modo Demostración (Revisa sincronización)');
     }
   };
 
@@ -129,21 +138,91 @@ function loadData() {
   script.id = 'gasJsonpScript';
   const sep = baseUrl.includes('?') ? '&' : '?';
   script.src = `${baseUrl}${sep}callback=onMeliDataReceived&t=${Date.now()}`;
+
+  const jsonpTimeout = setTimeout(() => {
+    if (!jsonpLoaded) {
+      console.warn('JSONP timeout, intentando fetch alternativo...');
+      fallbackFetch(baseUrl);
+    }
+  }, 4000);
+
   script.onerror = () => {
-    console.warn('JSONP loader error, falling back to standard fetch');
-    fetch(baseUrl)
-      .then(r => r.json())
-      .then(data => processReceivedData(data))
-      .catch(() => {
-        syncText.textContent = 'Modo Prueba (Mock Data)';
-      });
+    clearTimeout(jsonpTimeout);
+    if (!jsonpLoaded) {
+      console.warn('Fallo de carga JSONP, ejecutando fallbackFetch');
+      fallbackFetch(baseUrl);
+    }
   };
 
   document.body.appendChild(script);
 }
 
+function fallbackFetch(baseUrl) {
+  fetch(baseUrl)
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP_${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      if (data && data.items && data.items.length > 0) {
+        const syncText = document.getElementById('lastSyncText');
+        const syncDot = document.querySelector('#syncStatus .status-dot');
+        if (syncDot) syncDot.className = 'status-dot green';
+        syncText.textContent = `🟢 Conectado: ${data.items.length} publicaciones cargadas`;
+        processReceivedData(data);
+      } else {
+        loadMockData('Modo Demostración (Revisa sincronización)');
+      }
+    })
+    .catch(() => {
+      showModalErrorAlert();
+      loadMockData('⚠️ Modo Demostración (Actualizar URL API)');
+    });
+}
+
+function loadMockData(customStatusText) {
+  fetch('mock-data.json')
+    .then(r => r.json())
+    .then(data => {
+      const syncText = document.getElementById('lastSyncText');
+      const syncDot = document.querySelector('#syncStatus .status-dot');
+      if (syncText) syncText.textContent = customStatusText || 'Modo Demostración';
+      if (syncDot) syncDot.className = 'status-dot amber';
+      processReceivedData(data);
+    })
+    .catch(e => {
+      console.error('Error cargando mock-data.json:', e);
+    });
+}
+
+function showModalErrorAlert() {
+  let modalAlert = document.getElementById('modalErrorAlert');
+  if (!modalAlert) {
+    const modalBody = document.querySelector('#configModal .modal-body');
+    if (modalBody) {
+      modalAlert = document.createElement('div');
+      modalAlert.id = 'modalErrorAlert';
+      modalAlert.style.cssText = 'background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.4); color: #f43f5e; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px;';
+      modalBody.insertBefore(modalAlert, modalBody.firstChild);
+    }
+  }
+  
+  if (modalAlert) {
+    modalAlert.innerHTML = `
+      <strong>⚠️ Nota sobre la URL de la API:</strong><br>
+      Si ves el mensaje "Modo Demostración", verifica tu URL activa de Google Apps Script.<br>
+      <strong>Cómo obtener tu URL activa:</strong>
+      <ol style="margin-left: 20px; margin-top: 4px;">
+        <li>Abre tu script en Google Apps Script.</li>
+        <li>Haz clic en <b>Desplegar > Gestionar despliegues</b>.</li>
+        <li>Copia la URL que termina en <code>/exec</code> y pégala aquí abajo.</li>
+      </ol>
+    `;
+    modalAlert.style.display = 'block';
+  }
+}
+
 function processReceivedData(data) {
-  const syncText = document.getElementById('lastSyncText');
   state.items = data.items || [];
   if (data.config) {
     state.config.lead_time_days = data.config.lead_time_days || 15;
@@ -160,7 +239,6 @@ function processReceivedData(data) {
     document.getElementById('targetCoverageVal').textContent = `${state.config.target_coverage_days} días`;
   }
 
-  syncText.textContent = `🟢 Conectado: ${state.items.length} publicaciones cargadas`;
   recalculateMetrics();
 }
 
@@ -176,10 +254,10 @@ function recalculateMetrics() {
 
     if (item.stock === 0) {
       item.status = 'AGOTADO';
-      item.reorder_suggested = Math.ceil(vpd * targetCoverageDays);
+      item.reorder_suggested = Math.ceil(vpd * target_coverage_days);
     } else if (item.stock <= item.reorder_point) {
       item.status = 'CRITICO';
-      item.reorder_suggested = Math.max(0, Math.ceil((vpd * targetCoverageDays) - item.stock));
+      item.reorder_suggested = Math.max(0, Math.ceil((vpd * target_coverage_days) - item.stock));
     } else if (item.coverage_days > 90) {
       item.status = 'SOBRESTOCK';
       item.reorder_suggested = 0;
