@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mercado Libre Analytics - Panel de Control de Stock & Rotación</title>
+  <meta name="description" content="Dashboard interactivo para análisis de métricas de rotación, días de cobertura y gestión de punto de pedido para Mercado Libre.">
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js CDN para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="styles.css?v=20.0">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div>
+          <h1>Meli Stock Analytics</h1>
+          <p class="subtitle">Control de Rotación y Sugerencia de Reposición en Tiempo Real</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="sync-status" id="syncStatus">
+          <span class="status-dot green"></span>
+          <span class="status-text" id="lastSyncText">🟢 Mercado Libre (39 publicaciones cargadas)</span>
+        </div>
+        <button class="btn btn-secondary" id="btnConfigModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Conexión API
+        </button>
+        <button class="btn btn-primary" id="btnExportCsv">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Exportar Pedido (CSV)
+        </button>
+      </div>
+    </header>
+
+    <!-- KPI DASHBOARD CARDS -->
+    <section class="kpi-grid">
+      <div class="kpi-card purple">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Publicaciones</span>
+          <div class="kpi-icon">📦</div>
+        </div>
+        <div class="kpi-value" id="kpiTotalItems">39</div>
+        <div class="kpi-subtext">SKUs en seguimiento</div>
+      </div>
+
+      <div class="kpi-card rose">
+        <div class="kpi-header">
+          <span class="kpi-title">Sin Stock (Agotados)</span>
+          <div class="kpi-icon">⛔</div>
+        </div>
+        <div class="kpi-value" id="kpiOutOfStock">0</div>
+        <div class="kpi-subtext">Quiebres de stock activos</div>
+      </div>
+
+      <div class="kpi-card amber">
+        <div class="kpi-header">
+          <span class="kpi-title">Stock Crítico (Punto Pedido)</span>
+          <div class="kpi-icon">⚠️</div>
+        </div>
+        <div class="kpi-value" id="kpiCriticalStock">0</div>
+        <div class="kpi-subtext">Requieren reposición inmediata</div>
+      </div>
+
+      <div class="kpi-card emerald">
+        <div class="kpi-header">
+          <span class="kpi-title">Unidades a Comprar</span>
+          <div class="kpi-icon">🛒</div>
+        </div>
+        <div class="kpi-value" id="kpiTotalSuggestedQty">0</div>
+        <div class="kpi-subtext">Sugerencia total reposición</div>
+      </div>
+    </section>
+
+    <!-- SIMULADOR DINÁMICO DE PARÁMETROS -->
+    <section class="controls-panel card">
+      <div class="panel-header">
+        <h2>🎛️ Simulador Interactivo de Punto de Pedido</h2>
+        <p>Ajusta los días de reposición y stock de seguridad para recalcular las alertas al instante.</p>
+      </div>
+
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="leadTimeInput">Demora del Proveedor (Lead Time): <span class="badge-value" id="leadTimeVal">15 días</span></label>
+          <input type="range" id="leadTimeInput" min="1" max="60" value="15" class="slider">
+        </div>
+
+        <div class="control-group">
+          <label for="safetyStockInput">Stock de Seguridad: <span class="badge-value" id="safetyStockVal">7 días</span></label>
+          <input type="range" id="safetyStockInput" min="0" max="30" value="7" class="slider">
+        </div>
+
+        <div class="control-group">
+          <label for="targetCoverageInput">Objetivo de Cobertura al Comprar: <span class="badge-value" id="targetCoverageVal">45 días</span></label>
+          <input type="range" id="targetCoverageInput" min="15" max="90" value="45" class="slider">
+        </div>
+      </div>
+    </section>
+
+    <!-- GRÁFICOS ANALÍTICOS -->
+    <section class="charts-grid">
+      <div class="card chart-card">
+        <div class="panel-header">
+          <h3>📊 Estado del Inventario</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartStockStatus"></canvas>
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="panel-header">
+          <h3>🚀 Top 8 Productos con Mayor Sugerencia de Reposición</h3>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartTopSuggested"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABLA DE CONTROL DE INVENTARIO Y REPOSICIÓN -->
+    <section class="card table-card">
+      <div class="table-toolbar">
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="searchInput" placeholder="Buscar por Título, SKU o ID de Publicación...">
+        </div>
+
+        <div class="filter-pills">
+          <button class="pill active" data-filter="ALL">Todos (<span id="countAll">39</span>)</button>
+          <button class="pill pill-rose" data-filter="AGOTADO">Agotados (<span id="countAgotado">0</span>)</button>
+          <button class="pill pill-amber" data-filter="CRITICO">Punto de Pedido (<span id="countCritico">0</span>)</button>
+          <button class="pill pill-emerald" data-filter="ADECUADO">Adecuado (<span id="countAdecuado">0</span>)</button>
+          <button class="pill pill-slate" data-filter="SOBRESTOCK">Sobrestock (<span id="countSobrestock">39</span>)</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table id="inventoryTable">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>SKU / ID</th>
+              <th class="text-center">Stock Actual</th>
+              <th class="text-center">Ventas 30d</th>
+              <th class="text-center">Prom. Diario (VPD)</th>
+              <th class="text-center">Días Cobertura</th>
+              <th class="text-center">Punto Pedido</th>
+              <th class="text-center">Comprar (Sugerido)</th>
+              <th class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Filas dinámicas generadas por app.js -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL DE CONFIGURACIÓN DE URL DE ENDPOINT -->
+  <div class="modal-backdrop" id="configModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔑 Configurar Enlace API Google Apps Script / CSV</h3>
+        <button class="btn-close" id="btnCloseModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Introduce la URL de despliegue de tu Web App de Google Apps Script (`https://script.google.com/macros/s/.../exec`) o de tu CSV publicado de Google Sheet.</p>
+        <div class="form-group">
+          <label for="gasUrlInput">URL Web App / CSV publicado:</label>
+          <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="input-text">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnUseMock">Cargar 39 Publicaciones Reales</button>
+        <button class="btn btn-primary" id="btnSaveConfig">Guardar y Conectar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=20.0"></script>
+</body>
+</html>
