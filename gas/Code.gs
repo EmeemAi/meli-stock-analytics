@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK & ROTATION ANALYTICS - GOOGLE APPS SCRIPT BACKEND
+ * MERCADO LIBRE STOCK ANALYTICS - GOOGLE APPS SCRIPT BACKEND
  * ==============================================================================
  */
 
@@ -14,8 +14,7 @@ const DEFAULT_CONFIG = {
 const ACTIVE_CREDENTIALS = {
   CLIENT_ID: '4488794762859008',
   CLIENT_SECRET: 'lQZNoEJtnwlSGqLLyhDsFlKCwVXdgRqV',
-  ACCESS_TOKEN: 'APP_USR-4488794762859008-081219-1f8cbeab389b5e0f4e08e9ff5624bc76-231036407',
-  REFRESH_TOKEN: 'TG-6a7d0236111a55000182f1e5-231036407',
+  ACCESS_TOKEN: 'APP_USR-4488794762859008-081310-890c022fd86e2721952d71d95158afc9-231036407',
   SELLER_ID: '231036407'
 };
 
@@ -77,7 +76,7 @@ function fetchMeliApi(endpoint) {
   let response = UrlFetchApp.fetch(url, options);
 
   if (response.getResponseCode() !== 200) {
-    throw new Error(`Error API MeLi (${response.getResponseCode()}): ` + response.getContentText());
+    throw new Error(`Error MeLi (${response.getResponseCode()}): ` + response.getContentText());
   }
 
   return JSON.parse(response.getContentText());
@@ -135,12 +134,16 @@ function syncMeliData() {
   let orders = [];
   let orderOffset = 0;
   
-  while (true) {
-    const orderRes = fetchMeliApi(`/orders/search?seller=${sellerId}&order.date_created.from=${dateFrom}&offset=${orderOffset}&limit=50`);
-    const results = orderRes.results || [];
-    orders = orders.concat(results);
-    if (results.length < 50 || orders.length >= 2000) break;
-    orderOffset += 50;
+  try {
+    while (true) {
+      const orderRes = fetchMeliApi(`/orders/search?seller=${sellerId}&order.date_created.from=${dateFrom}&offset=${orderOffset}&limit=50`);
+      const results = orderRes.results || [];
+      orders = orders.concat(results);
+      if (results.length < 50 || orders.length >= 2000) break;
+      orderOffset += 50;
+    }
+  } catch(e) {
+    Logger.log('Aviso consulta órdenes: ' + e.message);
   }
 
   const date7d = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
