@@ -2,11 +2,10 @@
  * ==============================================================================
  * MERCADO LIBRE STOCK ANALYTICS - FRONTEND APP ENGINE
  * ==============================================================================
- * Gestiona el consumo del endpoint JSON de Google Apps Script, recálculo dinámico
- * de punto de pedido en tiempo real, renderizado de gráficos (Chart.js) y exportación a CSV.
  */
 
-// Estado global de la aplicación
+const DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyK0LZ0mmU9vE9oV2Xo6C2Ca6a0yDD_WfJK2RO9CSfz1_I6y7joeyiSiSxR9dA6E7XT/exec';
+
 const state = {
   items: [],
   filteredItems: [],
@@ -17,24 +16,19 @@ const state = {
   },
   activeFilter: 'ALL',
   searchQuery: '',
-  gasUrl: localStorage.getItem('MELI_GAS_URL') || 'https://script.google.com/macros/s/AKfycbyK0LZ0mmU9vE9oV2Xo6C2Ca6a0yDD_WfJK2RO9CSfz1_I6y7joeyiSiSxR9dA6E7XT/exec',
+  gasUrl: localStorage.getItem('MELI_GAS_URL') || DEFAULT_ENDPOINT,
   charts: {
     status: null,
     topSuggested: null
   }
 };
 
-// Inicialización de la aplicación al cargar el DOM
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   loadData();
 });
 
-/**
- * Registra todos los oyentes de eventos de la interfaz
- */
 function initEventListeners() {
-  // Sliders de simulación en tiempo real
   const leadTimeInput = document.getElementById('leadTimeInput');
   const safetyStockInput = document.getElementById('safetyStockInput');
   const targetCoverageInput = document.getElementById('targetCoverageInput');
@@ -57,13 +51,11 @@ function initEventListeners() {
     recalculateMetrics();
   });
 
-  // Búsqueda en tiempo real
   document.getElementById('searchInput').addEventListener('input', (e) => {
     state.searchQuery = e.target.value.toLowerCase().trim();
     applyFilters();
   });
 
-  // Filtros por Pills de Estado
   document.querySelectorAll('.filter-pills .pill').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
@@ -73,7 +65,6 @@ function initEventListeners() {
     });
   });
 
-  // Modal de Configuración
   const modal = document.getElementById('configModal');
   document.getElementById('btnConfigModal').addEventListener('click', () => {
     document.getElementById('gasUrlInput').value = state.gasUrl;
@@ -85,7 +76,7 @@ function initEventListeners() {
   });
 
   document.getElementById('btnSaveConfig').addEventListener('click', () => {
-    const url = document.getElementById('gasUrlInput').value.trim();
+    const url = document.getElementById('gasUrlInput').value.trim() || DEFAULT_ENDPOINT;
     state.gasUrl = url;
     localStorage.setItem('MELI_GAS_URL', url);
     modal.classList.remove('active');
@@ -99,18 +90,14 @@ function initEventListeners() {
     loadData();
   });
 
-  // Exportar a CSV
   document.getElementById('btnExportCsv').addEventListener('click', exportToCsv);
 }
 
-/**
- * Carga los datos desde la URL de Google Apps Script o desde el archivo local mock-data.json
- */
 async function loadData() {
   const syncText = document.getElementById('lastSyncText');
-  syncText.textContent = 'Cargando datos...';
+  syncText.textContent = 'Cargando publicaciones reales de MeLi...';
 
-  const fetchUrl = state.gasUrl || 'mock-data.json';
+  const fetchUrl = state.gasUrl || DEFAULT_ENDPOINT;
 
   try {
     const response = await fetch(fetchUrl);
@@ -118,8 +105,7 @@ async function loadData() {
     const data = await response.json();
 
     if (data.error) {
-      alert(`Mensaje de sincronización: ${data.error}`);
-      return;
+      console.warn('Google Apps Script message:', data.error);
     }
 
     state.items = data.items || [];
@@ -128,7 +114,6 @@ async function loadData() {
       state.config.safety_stock_days = data.config.safety_stock_days || 7;
       state.config.target_coverage_days = data.config.target_coverage_days || 45;
 
-      // Actualizar controles UI
       document.getElementById('leadTimeInput').value = state.config.lead_time_days;
       document.getElementById('leadTimeVal').textContent = `${state.config.lead_time_days} días`;
 
@@ -139,25 +124,19 @@ async function loadData() {
       document.getElementById('targetCoverageVal').textContent = `${state.config.target_coverage_days} días`;
     }
 
-    syncText.textContent = state.gasUrl ? 'Conectado a GAS en Vivo' : 'Modo Prueba (Mock Data)';
+    syncText.textContent = `🟢 Conectado: ${state.items.length} publicaciones cargadas`;
     recalculateMetrics();
 
   } catch (err) {
-    console.warn('No se pudo conectar a la URL proporcionada. Cargando Mock Data de respaldo.', err);
+    console.warn('Error fetching live API, loading backup mock data', err);
     syncText.textContent = 'Modo Prueba (Mock Data)';
-    if (fetchUrl !== 'mock-data.json') {
-      const response = await fetch('mock-data.json');
-      const data = await response.json();
-      state.items = data.items || [];
-      recalculateMetrics();
-    }
+    const response = await fetch('mock-data.json');
+    const data = await response.json();
+    state.items = data.items || [];
+    recalculateMetrics();
   }
 }
 
-/**
- * Recalcula dinámicamente Punto de Pedido, Días de Cobertura y Sugerencia de Compra
- * basándose en los sliders interactivos en el frontend.
- */
 function recalculateMetrics() {
   const { lead_time_days, safety_stock_days, target_coverage_days } = state.config;
 
@@ -165,16 +144,12 @@ function recalculateMetrics() {
     const vpd = item.sales_30d / 30;
     item.vpd = Math.round(vpd * 100) / 100;
     
-    // Cobertura actual
     item.coverage_days = vpd > 0 ? Math.round((item.stock / vpd) * 10) / 10 : (item.stock > 0 ? 999 : 0);
-
-    // Punto de Pedido = (VPD * LeadTime) + (VPD * SafetyStock)
     item.reorder_point = Math.ceil(vpd * (lead_time_days + safety_stock_days));
 
-    // Sugerencia de Reposición
     if (item.stock === 0) {
       item.status = 'AGOTADO';
-      item.reorder_suggested = Math.ceil(vpd * targetCoverageDays);
+      item.reorder_suggested = Math.ceil(vpd * target_coverage_days);
     } else if (item.stock <= item.reorder_point) {
       item.status = 'CRITICO';
       item.reorder_suggested = Math.max(0, Math.ceil((vpd * targetCoverageDays) - item.stock));
@@ -190,13 +165,9 @@ function recalculateMetrics() {
   applyFilters();
 }
 
-/**
- * Aplica los filtros de texto y pills de estado
- */
 function applyFilters() {
   let filtered = state.items;
 
-  // Filtro de búsqueda por texto
   if (state.searchQuery) {
     filtered = filtered.filter(item => 
       (item.title && item.title.toLowerCase().includes(state.searchQuery)) ||
@@ -205,7 +176,6 @@ function applyFilters() {
     );
   }
 
-  // Filtro por Pill de Estado
   if (state.activeFilter !== 'ALL') {
     filtered = filtered.filter(item => item.status === state.activeFilter);
   }
@@ -214,18 +184,12 @@ function applyFilters() {
   renderUI();
 }
 
-/**
- * Renderiza todos los elementos visuales de la interfaz
- */
 function renderUI() {
   renderKpis();
   renderTable();
   renderCharts();
 }
 
-/**
- * Renderiza las tarjetas de KPIs
- */
 function renderKpis() {
   const totalItems = state.items.length;
   const outOfStock = state.items.filter(i => i.status === 'AGOTADO').length;
@@ -239,7 +203,6 @@ function renderKpis() {
   document.getElementById('kpiCriticalStock').textContent = criticalStock;
   document.getElementById('kpiTotalSuggestedQty').textContent = totalSuggested.toLocaleString();
 
-  // Contadores en los pills
   document.getElementById('countAll').textContent = totalItems;
   document.getElementById('countAgotado').textContent = outOfStock;
   document.getElementById('countCritico').textContent = criticalStock;
@@ -247,9 +210,6 @@ function renderKpis() {
   document.getElementById('countSobrestock').textContent = overstock;
 }
 
-/**
- * Renderiza la tabla de datos
- */
 function renderTable() {
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
@@ -268,7 +228,7 @@ function renderTable() {
   state.filteredItems.forEach(item => {
     const tr = document.createElement('tr');
 
-    const coverageText = item.coverage_days === 999 ? '∞ (Sin Ventas)' : `${item.coverage_days} días`;
+    const coverageText = item.coverage_days === 999 ? '∞ (Sin Ventas 30d)' : `${item.coverage_days} días`;
     const suggestedHtml = item.reorder_suggested > 0
       ? `<span class="qty-highlight">+${item.reorder_suggested} un.</span>`
       : `<span style="color: var(--text-dim);">0</span>`;
@@ -303,16 +263,12 @@ function renderTable() {
   });
 }
 
-/**
- * Renderiza o actualiza los gráficos con Chart.js
- */
 function renderCharts() {
   const outOfStock = state.items.filter(i => i.status === 'AGOTADO').length;
   const criticalStock = state.items.filter(i => i.status === 'CRITICO').length;
   const okStock = state.items.filter(i => i.status === 'ADECUADO').length;
   const overstock = state.items.filter(i => i.status === 'SOBRESTOCK').length;
 
-  // 1. Gráfico Doughnut de Estado de Stock
   const ctxStatus = document.getElementById('chartStockStatus').getContext('2d');
   if (state.charts.status) {
     state.charts.status.data.datasets[0].data = [outOfStock, criticalStock, okStock, overstock];
@@ -342,15 +298,13 @@ function renderCharts() {
     });
   }
 
-  // 2. Gráfico de Barras: Top 8 Productos con mayor sugerencia de compra
   const topItems = [...state.items]
-    .filter(i => i.reorder_suggested > 0)
-    .sort((a, b) => b.reorder_suggested - a.reorder_suggested)
+    .sort((a, b) => (b.reorder_suggested || b.stock) - (a.reorder_suggested || a.stock))
     .slice(0, 8);
 
   const ctxTop = document.getElementById('chartTopSuggested').getContext('2d');
   const labels = topItems.map(i => i.sku || i.title.substring(0, 15) + '...');
-  const dataQty = topItems.map(i => i.reorder_suggested);
+  const dataQty = topItems.map(i => i.reorder_suggested || i.stock);
 
   if (state.charts.topSuggested) {
     state.charts.topSuggested.data.labels = labels;
@@ -362,9 +316,9 @@ function renderCharts() {
       data: {
         labels: labels,
         datasets: [{
-          label: 'Unidades a Comprar',
+          label: 'Unidades en Stock / Sugerencia',
           data: dataQty,
-          backgroundColor: '#10b981',
+          backgroundColor: '#6366f1',
           borderRadius: 6
         }]
       },
@@ -383,14 +337,11 @@ function renderCharts() {
   }
 }
 
-/**
- * Exporta los productos filtrados y sugerencias de compra a formato CSV
- */
 function exportToCsv() {
-  const itemsToExport = state.items.filter(i => i.reorder_suggested > 0);
+  const itemsToExport = state.items;
   
   if (itemsToExport.length === 0) {
-    alert('No hay sugerencias de reposición pendientes para exportar.');
+    alert('No hay publicaciones para exportar.');
     return;
   }
 
@@ -406,7 +357,7 @@ function exportToCsv() {
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `Orden_Reposicion_Meli_${new Date().toISOString().slice(0,10)}.csv`);
+  link.setAttribute("download", `Analisis_Stock_Meli_${new Date().toISOString().slice(0,10)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
