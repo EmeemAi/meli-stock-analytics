@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - GOOGLE APPS SCRIPT BACKEND
+ * MERCADO LIBRE STOCK ANALYTICS BACKEND + CHATBOT IA GEMINI 1.5 FLASH
  * ==============================================================================
  */
 
@@ -12,7 +12,7 @@ const ACTIVE_CREDENTIALS = {
 };
 
 // 🔑 COLOCA AQUÍ TU API KEY GRATUITA DE GOOGLE AI STUDIO:
-const GEMINI_API_KEY = 'COLOCAR_AQUI_TU_API_KEY_DE_GEMINI';
+const GEMINI_API_KEY = 'TU_API_KEY_DE_GEMINI_AQUI';
 
 function getValidAccessToken() {
   return ACTIVE_CREDENTIALS.ACCESS_TOKEN;
@@ -35,22 +35,24 @@ function fetchMeliApi(endpoint, method = 'get', payload = null) {
 }
 
 /**
- * MOTOR IA GOOGLE GEMINI 1.5 FLASH: Generación de Respuestas Vendedoras Automatizadas
+ * FUNCIÓN DE PRUEBA RÁPIDA: Ejecútala en Apps Script para verificar tu API Key de Gemini
  */
-function responderPreguntaConGemini(questionId, questionText, itemId) {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('COLOCAR_AQUI')) {
-    Logger.log('⚠️ Configura tu GEMINI_API_KEY en la línea 13 de Code.gs');
-    return null;
-  }
+function testRespuestaGeminiEnVivo() {
+  const testQuestion = "¿Hola, buenas tardes! Tienen stock disponible para envío inmediato a Córdoba?";
+  const testItemId = "MLA3511742000"; // Libro Ética Para Amador - Savater
+  
+  Logger.log("🚀 Probando conexión con Google Gemini API...");
+  const respuesta = responderPreguntaConGeminiDirecto(testQuestion, testItemId);
+  Logger.log("🤖 RESPUESTA RECIBIDA DE GEMINI:\n" + respuesta);
+}
 
-  // 1. Obtener la ficha actualizada del ítem de MeLi
+function responderPreguntaConGeminiDirecto(questionText, itemId) {
   const itemData = fetchMeliApi(`/items/${itemId}`);
   const title = itemData.title || '';
   const price = itemData.price || 0;
   const stock = itemData.available_quantity || 0;
 
-  // 2. Construir el Prompt Vendedor con RAG Context
-  const systemPrompt = `Eres el asesor de ventas oficial de Darío en Mercado Libre Argentina.
+  const systemPrompt = `Eres el asesor de ventas oficial de la librería de Darío en Mercado Libre Argentina.
 Tu objetivo es responder la consulta de un comprador usando SOLO los datos del producto a continuación.
 
 FICHA OFICIAL DEL PRODUCTO:
@@ -60,9 +62,9 @@ FICHA OFICIAL DEL PRODUCTO:
 
 REGLAS DE RESPUESTA:
 - Sé amable, cortés y profesional. Saluda con "¡Hola! Muchas gracias por tu consulta."
-- Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado y que gestionas el reingreso con la editorial, invitándolo a consultar por otros libros.
-- Si hay stock, confirma la disponibilidad, el precio oficial y aclara que realizas envíos a todo el país mediante Mercado Envíos despachando en el día.
-- Mantén la respuesta concisa (máximo 350 caracteres) lista para enviar a Mercado Libre.`;
+- Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado y que gestionas el reingreso con la editorial.
+- Si hay stock, confirma disponibilidad, precio oficial y aclara envíos por Mercado Envíos despachando en el día.
+- Mantén la respuesta concisa (máximo 350 caracteres).`;
 
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   
@@ -84,24 +86,30 @@ REGLAS DE RESPUESTA:
 
   if (response.getResponseCode() === 200) {
     const json = JSON.parse(response.getContentText());
-    const aiAnswer = json.candidates[0].content.parts[0].text.trim();
-    
-    // 3. Publicar la respuesta en Mercado Libre a través de la API
-    fetchMeliApi('/answers', 'post', {
-      question_id: questionId,
-      text: aiAnswer
-    });
-
-    Logger.log('✅ Pregunta respondida con IA exitosamente: ' + aiAnswer);
-    return aiAnswer;
+    return json.candidates[0].content.parts[0].text.trim();
   } else {
-    Logger.log('Error Gemini API: ' + response.getContentText());
-    return null;
+    throw new Error('Error Gemini: ' + response.getContentText());
   }
 }
 
 /**
- * Webhook de Mercado Libre: Recibe notificaciones de nuevas preguntas
+ * MOTOR IA GOOGLE GEMINI 1.5 FLASH: Responde y publica automáticamente en Mercado Libre
+ */
+function responderPreguntaConGemini(questionId, questionText, itemId) {
+  const aiAnswer = responderPreguntaConGeminiDirecto(questionText, itemId);
+  
+  // Publicar la respuesta en Mercado Libre a través de la API
+  fetchMeliApi('/answers', 'post', {
+    question_id: questionId,
+    text: aiAnswer
+  });
+
+  Logger.log('✅ Pregunta respondida y enviada a Mercado Libre: ' + aiAnswer);
+  return aiAnswer;
+}
+
+/**
+ * Webhook de Mercado Libre: Recibe notificaciones en tiempo real de nuevas preguntas
  */
 function doPost(e) {
   try {
