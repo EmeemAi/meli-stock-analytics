@@ -35,7 +35,7 @@ function fetchMeliApi(endpoint, method = 'get', payload = null) {
 }
 
 /**
- * CANJE AUTOMÁTICO DE CÓDIGO OAUTH: Genera y renueva Tokens de por vida
+ * CANJE AUTOMÁTICO DE CÓDIGO OAUTH
  */
 function intercambiarCodigoPorTokens(code, redirectUri) {
   const url = 'https://api.mercadolibre.com/oauth/token';
@@ -111,18 +111,44 @@ REGLAS DE RESPUESTA:
     const json = JSON.parse(response.getContentText());
     const aiAnswer = json.candidates[0].content.parts[0].text.trim();
     
-    // Publicar la respuesta en Mercado Libre a través de la API
-    fetchMeliApi('/answers', 'post', {
-      question_id: questionId,
-      text: aiAnswer
+    // 1. Publicar la respuesta en Mercado Libre a través de la API
+    try {
+      fetchMeliApi('/answers', 'post', {
+        question_id: questionId,
+        text: aiAnswer
+      });
+    } catch (e) {
+      Logger.log('Error enviando respuesta a MeLi: ' + e.toString());
+    }
+
+    // 2. Guardar en el Historial de Preguntas Recibidas en Vivo
+    saveQuestionToHistory({
+      id: questionId,
+      item_id: itemId,
+      item_title: title,
+      question: questionText,
+      answer: aiAnswer,
+      timestamp: new Date().toISOString()
     });
 
-    Logger.log('✅ Pregunta respondida y enviada a Mercado Libre: ' + aiAnswer);
+    Logger.log('✅ Pregunta respondida y guardada en historial: ' + aiAnswer);
     return aiAnswer;
   } else {
     Logger.log('Error Gemini API: ' + response.getContentText());
     return null;
   }
+}
+
+function saveQuestionToHistory(qObj) {
+  let history = [];
+  try {
+    const raw = PropertiesService.getUserProperties().getProperty('MELI_QUESTIONS_HISTORY');
+    if (raw) history = JSON.parse(raw);
+  } catch (e) {}
+  
+  history.unshift(qObj);
+  if (history.length > 20) history = history.slice(0, 20);
+  PropertiesService.getUserProperties().setProperty('MELI_QUESTIONS_HISTORY', JSON.stringify(history));
 }
 
 /**
@@ -131,12 +157,13 @@ REGLAS DE RESPUESTA:
 function doPost(e) {
   try {
     const postData = JSON.parse(e.postData.contents);
-    if (postData && postData.topic === 'questions') {
-      const questionId = postData.resource.split('/').pop();
-      const questionData = fetchMeliApi(`/questions/${questionId}`);
-      
-      if (questionData && questionData.status === 'UNANSWERED') {
-        responderPreguntaConGemini(questionId, questionData.text, questionData.item_id);
+    if (postData && (postData.topic === 'questions' || postData.topic === 'messages')) {
+      const questionId = postData.resource ? postData.resource.split('/').pop() : '';
+      if (questionId) {
+        const questionData = fetchMeliApi(`/questions/${questionId}`);
+        if (questionData && questionData.status === 'UNANSWERED') {
+          responderPreguntaConGemini(questionId, questionData.text, questionData.item_id);
+        }
       }
     }
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);
@@ -203,12 +230,19 @@ function syncMeliData() {
     };
   });
 
+  let recentQuestions = [];
+  try {
+    const rawQ = PropertiesService.getUserProperties().getProperty('MELI_QUESTIONS_HISTORY');
+    if (rawQ) recentQuestions = JSON.parse(rawQ);
+  } catch (e) {}
+
   const payload = {
     status: 'success',
     updated_at: new Date().toISOString(),
     config: { lead_time_days: 15, safety_stock_days: 7, target_coverage_days: 45 },
     summary: { total_items: formattedItems.length, out_of_stock: 0, critical_stock: 0, ok_stock: 0, overstock: formattedItems.length },
-    items: formattedItems
+    items: formattedItems,
+    recent_questions: recentQuestions
   };
 
   PropertiesService.getUserProperties().setProperty('MELI_ITEMS_JSON', JSON.stringify(payload));

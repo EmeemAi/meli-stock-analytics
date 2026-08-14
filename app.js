@@ -51,6 +51,7 @@ const DEFAULT_REAL_ITEMS = [
 const state = {
   items: DEFAULT_REAL_ITEMS,
   filteredItems: DEFAULT_REAL_ITEMS,
+  recentQuestions: [],
   config: {
     lead_time_days: 15,
     safety_stock_days: 7,
@@ -145,7 +146,6 @@ function initEventListeners() {
     });
   });
 
-  // ASISTENTE IA GEMINI CONTROLES
   initAiAssistantControls();
 
   const modal = document.getElementById('configModal');
@@ -440,6 +440,7 @@ function fallbackFetch(baseUrl) {
 
 function processReceivedData(data) {
   const receivedItems = data.items || DEFAULT_REAL_ITEMS;
+  state.recentQuestions = data.recent_questions || [];
   
   state.items = receivedItems.map(recItem => {
     const fallback = DEFAULT_REAL_ITEMS.find(d => d.id === recItem.id);
@@ -475,6 +476,56 @@ function processReceivedData(data) {
 
   recalculateMetrics();
   initAiAssistantControls();
+  renderRecentQuestions();
+}
+
+function renderRecentQuestions() {
+  const container = document.getElementById('liveQuestionsContainer');
+  const countBadge = document.getElementById('liveQuestionsCount');
+  if (!container) return;
+
+  const questions = state.recentQuestions || [];
+  if (countBadge) countBadge.textContent = `${questions.length} Notificaciones Recibidas`;
+
+  if (questions.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 30px; color: var(--text-dim); font-size: 0.9rem;">
+        ⏳ Esperando notificaciones de preguntas en vivo desde Mercado Libre... (Las consultas que tus compradores hagan en tu cuenta aparecerán aquí en tiempo real).
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = '';
+  questions.forEach(q => {
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    `;
+
+    const dateStr = q.timestamp ? new Date(q.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : 'Reciente';
+
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 700; color: #a5b4fc; font-size: 0.88rem;">📌 ${q.item_title || q.item_id}</span>
+        <span style="font-size: 0.75rem; color: var(--text-dim);">⏰ ${dateStr} hs</span>
+      </div>
+      <div style="font-size: 0.9rem; color: #f8fafc; font-weight: 600;">
+        ❓ Comprador: "${q.question}"
+      </div>
+      <div style="font-size: 0.88rem; color: #6ee7b7; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; padding: 10px 14px; border-radius: 4px;">
+        🤖 Respuesta Gemini AI: "${q.answer}"
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
 }
 
 function recalculateMetrics() {
@@ -538,6 +589,7 @@ function renderUI() {
   renderGrowthSimulator();
   renderTable();
   renderCharts();
+  renderRecentQuestions();
 }
 
 function renderKpis() {
