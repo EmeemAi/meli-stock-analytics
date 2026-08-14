@@ -258,8 +258,17 @@ function doGet(e) {
       return ContentService.createTextOutput(`✅ ¡CONEXIÓN EXITOSA CON MERCADO LIBRE!\n\nSe ha generado el Token de autorización para la cuenta Seller ID ${result.user_id}.\nEl Chatbot de Google Gemini 1.5 Flash está 100% activo en tus publicaciones.`).setMimeType(ContentService.MimeType.TEXT);
     }
 
-    const storedData = PropertiesService.getUserProperties().getProperty('MELI_ITEMS_JSON');
-    const payload = storedData ? JSON.parse(storedData) : syncMeliData();
+    let storedData = PropertiesService.getUserProperties().getProperty('MELI_ITEMS_JSON');
+    let payload = storedData ? JSON.parse(storedData) : syncMeliData();
+    
+    // ⭐ LEER SIEMPRE EL HISTORIAL DE PREGUNTAS EN TIEMPO REAL EN CADA CONSULTA
+    let recentQuestions = [];
+    try {
+      const rawQ = PropertiesService.getUserProperties().getProperty('MELI_QUESTIONS_HISTORY');
+      if (rawQ) recentQuestions = JSON.parse(rawQ);
+    } catch (errQ) {}
+    payload.recent_questions = recentQuestions;
+
     return responseOutput(payload, e);
   } catch (err) {
     return responseOutput({ error: err.toString() }, e);

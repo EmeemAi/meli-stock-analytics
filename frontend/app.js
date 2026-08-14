@@ -73,6 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   renderUI();
   loadData();
+  
+  // 🔄 Auto-actualización de preguntas en tiempo real cada 12 segundos
+  setInterval(() => {
+    loadData();
+  }, 12000);
 });
 
 function initEventListeners() {
