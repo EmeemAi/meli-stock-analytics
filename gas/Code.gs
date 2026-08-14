@@ -11,11 +11,11 @@ const ACTIVE_CREDENTIALS = {
   SELLER_ID: '231036407'
 };
 
-// 🔑 COLOCA AQUÍ TU API KEY GRATUITA DE GOOGLE AI STUDIO:
 const GEMINI_API_KEY = 'TU_API_KEY_DE_GEMINI_AQUI';
 
 function getValidAccessToken() {
-  return ACTIVE_CREDENTIALS.ACCESS_TOKEN;
+  const savedToken = PropertiesService.getUserProperties().getProperty('ACCESS_TOKEN');
+  return savedToken || ACTIVE_CREDENTIALS.ACCESS_TOKEN;
 }
 
 function fetchMeliApi(endpoint, method = 'get', payload = null) {
@@ -35,18 +35,41 @@ function fetchMeliApi(endpoint, method = 'get', payload = null) {
 }
 
 /**
- * FUNCIÓN DE PRUEBA RÁPIDA: Ejecútala en Apps Script para verificar tu API Key de Gemini
+ * CANJE AUTOMÁTICO DE CÓDIGO OAUTH: Genera y renueva Tokens de por vida
  */
-function testRespuestaGeminiEnVivo() {
-  const testQuestion = "¿Hola, buenas tardes! Tienen stock disponible para envío inmediato a Córdoba?";
-  const testItemId = "MLA3511742000"; // Libro Ética Para Amador - Savater
-  
-  Logger.log("🚀 Probando conexión con Google Gemini API...");
-  const respuesta = responderPreguntaConGeminiDirecto(testQuestion, testItemId);
-  Logger.log("🤖 RESPUESTA RECIBIDA DE GEMINI:\n" + respuesta);
+function intercambiarCodigoPorTokens(code, redirectUri) {
+  const url = 'https://api.mercadolibre.com/oauth/token';
+  const payload = {
+    grant_type: 'authorization_code',
+    client_id: ACTIVE_CREDENTIALS.CLIENT_ID,
+    client_secret: ACTIVE_CREDENTIALS.CLIENT_SECRET,
+    code: code,
+    redirect_uri: redirectUri
+  };
+
+  const response = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/x-www-form-urlencoded',
+    payload: payload,
+    muteHttpExceptions: true
+  });
+
+  if (response.getResponseCode() === 200) {
+    const json = JSON.parse(response.getContentText());
+    PropertiesService.getUserProperties().setProperty('ACCESS_TOKEN', json.access_token);
+    PropertiesService.getUserProperties().setProperty('REFRESH_TOKEN', json.refresh_token);
+    PropertiesService.getUserProperties().setProperty('SELLER_ID', json.user_id.toString());
+    Logger.log('✅ Token renovado exitosamente: ' + json.access_token);
+    return json;
+  } else {
+    throw new Error('Error al canjear token: ' + response.getContentText());
+  }
 }
 
-function responderPreguntaConGeminiDirecto(questionText, itemId) {
+/**
+ * MOTOR IA GOOGLE GEMINI 1.5 FLASH: Responde y publica automáticamente en Mercado Libre
+ */
+function responderPreguntaConGemini(questionId, questionText, itemId) {
   const itemData = fetchMeliApi(`/items/${itemId}`);
   const title = itemData.title || '';
   const price = itemData.price || 0;
@@ -86,26 +109,20 @@ REGLAS DE RESPUESTA:
 
   if (response.getResponseCode() === 200) {
     const json = JSON.parse(response.getContentText());
-    return json.candidates[0].content.parts[0].text.trim();
+    const aiAnswer = json.candidates[0].content.parts[0].text.trim();
+    
+    // Publicar la respuesta en Mercado Libre a través de la API
+    fetchMeliApi('/answers', 'post', {
+      question_id: questionId,
+      text: aiAnswer
+    });
+
+    Logger.log('✅ Pregunta respondida y enviada a Mercado Libre: ' + aiAnswer);
+    return aiAnswer;
   } else {
-    throw new Error('Error Gemini: ' + response.getContentText());
+    Logger.log('Error Gemini API: ' + response.getContentText());
+    return null;
   }
-}
-
-/**
- * MOTOR IA GOOGLE GEMINI 1.5 FLASH: Responde y publica automáticamente en Mercado Libre
- */
-function responderPreguntaConGemini(questionId, questionText, itemId) {
-  const aiAnswer = responderPreguntaConGeminiDirecto(questionText, itemId);
-  
-  // Publicar la respuesta en Mercado Libre a través de la API
-  fetchMeliApi('/answers', 'post', {
-    question_id: questionId,
-    text: aiAnswer
-  });
-
-  Logger.log('✅ Pregunta respondida y enviada a Mercado Libre: ' + aiAnswer);
-  return aiAnswer;
 }
 
 /**
@@ -195,13 +212,18 @@ function syncMeliData() {
   };
 
   PropertiesService.getUserProperties().setProperty('MELI_ITEMS_JSON', JSON.stringify(payload));
-  PropertiesService.getUserProperties().setProperty('ACCESS_TOKEN', ACTIVE_CREDENTIALS.ACCESS_TOKEN);
-
   return payload;
 }
 
 function doGet(e) {
   try {
+    if (e && e.parameter && e.parameter.code) {
+      const code = e.parameter.code;
+      const redirectUri = 'https://script.google.com/macros/s/AKfycbyK0LZ0mmU9vE9oV2Xo6C2Ca6a0yDD_WfJK2RO9CSfz1_I6y7joeyiSiSxR9dA6E7XT/exec';
+      const result = intercambiarCodigoPorTokens(code, redirectUri);
+      return ContentService.createTextOutput(`✅ ¡CONEXIÓN EXITOSA CON MERCADO LIBRE!\n\nSe ha generado el Token de autorización para la cuenta Seller ID ${result.user_id}.\nEl Chatbot de Google Gemini 1.5 Flash está 100% activo en tus publicaciones.`).setMimeType(ContentService.MimeType.TEXT);
+    }
+
     const storedData = PropertiesService.getUserProperties().getProperty('MELI_ITEMS_JSON');
     const payload = storedData ? JSON.parse(storedData) : syncMeliData();
     return responseOutput(payload, e);
