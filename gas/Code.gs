@@ -178,21 +178,22 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
   const stock = itemData.available_quantity !== undefined ? itemData.available_quantity : 0;
   const isDigital = itemId === 'MLA3552682426' || itemId === 'MLA2040505392' || itemId === 'MLA1458925371';
 
-  const systemPrompt = `Eres el asesor oficial de ventas de Darío en Mercado Libre Argentina.
+  // 📝 SYSTEM PROMPT OFICIAL DE DARÍO (CONFIGURACIÓN DE LIBROS USADOS EN EXCELENTE ESTADO)
+  const systemPrompt = `Eres el asesor oficial de ventas de la librería de Darío en Mercado Libre Argentina.
 Tu objetivo es responder la consulta de un comprador usando SOLO los datos del producto a continuación.
 
 FICHA OFICIAL DEL PRODUCTO:
 - Título: "${title}"
 - Precio: $ ${price.toLocaleString('es-AR')} ARS
 - Stock Disponible: ${stock} unidades
-- Estado: Nuevo, impecables condiciones originales
+- Estado: USADO EN EXCELENTE ESTADO (Libro usado, muy bien conservado, completo y sin hojas faltantes).
 - Tipo de Envío: ${isDigital ? 'Envío Digital Inmediato en PDF' : 'Mercado Envíos a todo el país'}
 
-REGLAS DE RESPUESTA:
+REGLAS STRICTAS DE RESPUESTA:
 - Sé amable, cortés y profesional. Saluda con "¡Hola! Muchas gracias por tu consulta."
-- Si preguntan sobre el estado del libro, aclara que está completamente nuevo, en excelente estado impecable.
-- Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado y que gestionas el reingreso con la editorial.
-- Si es producto digital, aclara que la entrega es digital e inmediata en PDF listo para descargar e imprimir.
+- SI PREGUNTAN POR EL ESTADO: Aclara siempre que es un LIBRO USADO EN EXCELENTE ESTADO, completo y muy bien conservado. NUNCA digas que es un libro "nuevo".
+- Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado y que gestionas el reingreso con la editorial/distribuidor.
+- Si es producto digital (agendas PDF o CV), aclara que la entrega es digital e inmediata en PDF listo para descargar e imprimir.
 - Si hay stock físico, confirma disponibilidad, precio oficial y aclara envíos por Mercado Envíos despachando en el día.
 - Mantén la respuesta concisa (máximo 350 caracteres) lista para enviar a Mercado Libre.`;
 
@@ -227,14 +228,14 @@ REGLAS DE RESPUESTA:
     }
   }
 
-  // Fallback seguro si la API key tuviere algun problema momentaneo
+  // Fallback seguro de respaldo en caso de desconexión momentánea de API Key
   if (!aiAnswer) {
     if (stock === 0) {
-      aiAnswer = `¡Hola! Muchas gracias por tu consulta. Te comento que "${title}" se encuentra temporalmente AGOTADO. Estamos gestionando el reingreso con la editorial. ¡Saludos cordiales, Darío!`;
+      aiAnswer = `¡Hola! Muchas gracias por tu consulta. Te comento que "${title}" se encuentra temporalmente AGOTADO. Estamos gestionando el reingreso. ¡Saludos cordiales, Darío!`;
     } else if (isDigital) {
       aiAnswer = `¡Hola! Sí, tenemos stock disponible permanente. El envío es digital e inmediato en formato PDF listo para imprimir tras la compra. ¡Esperamos tu compra! Saludos, Darío.`;
     } else {
-      aiAnswer = `¡Hola! Muchas gracias por consultar. El libro "${title}" se encuentra totalmente nuevo y en excelente estado. Tenemos stock por $ ${price.toLocaleString('es-AR')} ARS y despachamos hoy mismo por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
+      aiAnswer = `¡Hola! Muchas gracias por consultar. El libro "${title}" es usado en excelente estado, completo y muy bien conservado. Tenemos stock por $ ${price.toLocaleString('es-AR')} ARS y despachamos hoy mismo por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
     }
   }
 
@@ -272,7 +273,6 @@ function saveQuestionToHistory(qObj) {
     if (raw) history = JSON.parse(raw);
   } catch (e) {}
   
-  // Evitar duplicados
   history = history.filter(h => h.id !== qObj.id);
   history.unshift(qObj);
 
@@ -284,7 +284,7 @@ function saveQuestionToHistory(qObj) {
  * TEST DIRECTO: Ejecutar en Apps Script para verificar funcionamiento de Gemini y Notificaciones
  */
 function simularNotificacionDePregunta() {
-  const sampleQuestion = "¿Hola! Tienen stock disponible de este libro para enviar a Córdoba por Mercado Envíos?";
+  const sampleQuestion = "¿Hola! Tienen stock disponible de este libro y en qué estado está?";
   const sampleItemId = "MLA3511742000"; // Libro Ética Para Amador - Savater
   const fakeQuestionId = "SIM_" + Math.floor(Math.random() * 1000000);
 
@@ -322,7 +322,6 @@ function doPost(e) {
 }
 
 function syncMeliData() {
-  // Ejecutar también el escáner automático de preguntas sin responder
   try {
     responderPreguntasPendientesEnVivo();
   } catch(e) {}
