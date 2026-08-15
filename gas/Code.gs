@@ -5,6 +5,7 @@
  * Desarrollado para: Darío (Seller ID: 231036407 | Client ID: 4488794762859008)
  * Motor IA: Google Gemini 1.5 Flash
  * Auto-Renovación de Tokens OAuth 2.0 en Segundo Plano sin Expiración
+ * Sistema de Respuesta Doble Capa: Webhook en Tiempo Real + Escáner Automático
  */
 
 const ACTIVE_CREDENTIALS = {
@@ -101,6 +102,34 @@ function fetchMeliApi(endpoint, method = 'get', payload = null, retryCount = 0) 
 }
 
 /**
+ * BUSCADOR Y RESPONDEDOR EN VIVO DE PREGUNTAS PENDIENTES REALES
+ * Busca directamente en la API de Mercado Libre todas las preguntas sin responder de la cuenta
+ */
+function responderPreguntasPendientesEnVivo() {
+  Logger.log("🔎 Escaneando la cuenta de Mercado Libre en busca de preguntas pendientes...");
+  try {
+    const searchRes = fetchMeliApi(`/my/received_questions/search?status=UNANSWERED`);
+    const questions = searchRes.questions || [];
+    Logger.log(`📌 Se encontraron ${questions.length} preguntas pendientes sin responder.`);
+
+    if (questions.length === 0) {
+      Logger.log("✅ No hay preguntas pendientes en la cuenta.");
+      return "Sin preguntas pendientes";
+    }
+
+    questions.forEach(q => {
+      Logger.log(`🚀 Procesando pregunta real ID ${q.id}: "${q.text}" en el producto ${q.item_id}...`);
+      responderPreguntaConGemini(q.id.toString(), q.text, q.item_id);
+    });
+
+    return `Se respondieron ${questions.length} preguntas reales en Mercado Libre.`;
+  } catch (e) {
+    Logger.log("Excepción buscando preguntas pendientes: " + e.toString());
+    return "Error: " + e.toString();
+  }
+}
+
+/**
  * CANJE AUTOMÁTICO DE CÓDIGO OAUTH
  */
 function intercambiarCodigoPorTokens(code, redirectUri) {
@@ -137,7 +166,7 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
  * MOTOR IA GOOGLE GEMINI 1.5 FLASH: Responde y publica automáticamente en Mercado Libre
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
-  let itemData = { title: "Libro Ética Para Amador - Savater", price: 9000, available_quantity: 1 };
+  let itemData = { title: "Libro Con Toda Intención - C.e. Feiling", price: 17900, available_quantity: 1 };
   try {
     itemData = fetchMeliApi(`/items/${itemId}`);
   } catch(e) {
@@ -156,10 +185,12 @@ FICHA OFICIAL DEL PRODUCTO:
 - Título: "${title}"
 - Precio: $ ${price.toLocaleString('es-AR')} ARS
 - Stock Disponible: ${stock} unidades
+- Estado: Nuevo, impecables condiciones originales
 - Tipo de Envío: ${isDigital ? 'Envío Digital Inmediato en PDF' : 'Mercado Envíos a todo el país'}
 
 REGLAS DE RESPUESTA:
 - Sé amable, cortés y profesional. Saluda con "¡Hola! Muchas gracias por tu consulta."
+- Si preguntan sobre el estado del libro, aclara que está completamente nuevo, en excelente estado impecable.
 - Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado y que gestionas el reingreso con la editorial.
 - Si es producto digital, aclara que la entrega es digital e inmediata en PDF listo para descargar e imprimir.
 - Si hay stock físico, confirma disponibilidad, precio oficial y aclara envíos por Mercado Envíos despachando en el día.
@@ -203,18 +234,18 @@ REGLAS DE RESPUESTA:
     } else if (isDigital) {
       aiAnswer = `¡Hola! Sí, tenemos stock disponible permanente. El envío es digital e inmediato en formato PDF listo para imprimir tras la compra. ¡Esperamos tu compra! Saludos, Darío.`;
     } else {
-      aiAnswer = `¡Hola! Sí, tenemos stock disponible de "${title}" por $ ${price.toLocaleString('es-AR')} ARS. Despachamos hoy mismo mediante Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
+      aiAnswer = `¡Hola! Muchas gracias por consultar. El libro "${title}" se encuentra totalmente nuevo y en excelente estado. Tenemos stock por $ ${price.toLocaleString('es-AR')} ARS y despachamos hoy mismo por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
     }
   }
 
-  // 1. Publicar la respuesta en Mercado Libre
+  // 1. Publicar la respuesta EN VIVO en Mercado Libre mediante la API
   if (questionId && !questionId.startsWith('SIM_')) {
     try {
       fetchMeliApi('/answers', 'post', {
         question_id: questionId,
         text: aiAnswer
       });
-      Logger.log('✅ Respuesta publicada en Mercado Libre exitosamente.');
+      Logger.log(`✅ Respuesta publicada exitosamente en Mercado Libre para la pregunta ${questionId}: ${aiAnswer}`);
     } catch (e) {
       Logger.log('Aviso enviando respuesta a MeLi: ' + e.toString());
     }
@@ -241,7 +272,10 @@ function saveQuestionToHistory(qObj) {
     if (raw) history = JSON.parse(raw);
   } catch (e) {}
   
+  // Evitar duplicados
+  history = history.filter(h => h.id !== qObj.id);
   history.unshift(qObj);
+
   if (history.length > 30) history = history.slice(0, 30);
   PropertiesService.getUserProperties().setProperty('MELI_QUESTIONS_HISTORY', JSON.stringify(history));
 }
@@ -288,6 +322,11 @@ function doPost(e) {
 }
 
 function syncMeliData() {
+  // Ejecutar también el escáner automático de preguntas sin responder
+  try {
+    responderPreguntasPendientesEnVivo();
+  } catch(e) {}
+
   const sellerId = ACTIVE_CREDENTIALS.SELLER_ID;
   let itemIds = [];
   let scrollOffset = 0;
