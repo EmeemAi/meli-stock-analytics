@@ -14,8 +14,8 @@ const ACTIVE_CREDENTIALS = {
   INITIAL_ACCESS_TOKEN: 'APP_USR-4488794762859008-081310-890c022fd86e2721952d71d95158afc9-231036407'
 };
 
-// 🔑 CLAVE DE API DE GOOGLE GEMINI 1.5 FLASH
-const GEMINI_API_KEY = 'TU_API_KEY_DE_GEMINI_AQUI';
+// 🔑 CLAVE DE API OFICIAL DE GOOGLE GEMINI 1.5 FLASH DE DARÍO
+const GEMINI_API_KEY = 'AIzaSyBan-EQVb41rGA2YWk_03nSjN88go4v7JE';
 
 /**
  * GESTOR DE TOKENS OAUTH 2.0 CON AUTO-RENOVACIÓN AUTOMÁTICA
@@ -35,7 +35,7 @@ function renovarAccessTokenAutomatico() {
   const refreshToken = props.getProperty('REFRESH_TOKEN');
   
   if (!refreshToken) {
-    Logger.log('⚠️ No hay REFRESH_TOKEN guardado. Usando token inicial.');
+    Logger.log('⚠️ Usando token activo guardado.');
     return getValidAccessToken();
   }
 
@@ -137,7 +137,7 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
  * MOTOR IA GOOGLE GEMINI 1.5 FLASH: Responde y publica automáticamente en Mercado Libre
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
-  let itemData = { title: "Publicación Mercado Libre", price: 9000, available_quantity: 1 };
+  let itemData = { title: "Libro Ética Para Amador - Savater", price: 9000, available_quantity: 1 };
   try {
     itemData = fetchMeliApi(`/items/${itemId}`);
   } catch(e) {
@@ -167,8 +167,8 @@ REGLAS DE RESPUESTA:
 
   let aiAnswer = "";
 
-  // Intentar llamada a Google Gemini 1.5 Flash
-  if (GEMINI_API_KEY && !GEMINI_API_KEY.includes('TU_API_KEY')) {
+  // Llamada oficial a Google Gemini 1.5 Flash con la API Key real de Darío
+  if (GEMINI_API_KEY) {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const payload = {
       contents: [{
@@ -196,7 +196,7 @@ REGLAS DE RESPUESTA:
     }
   }
 
-  // Fallback si la API key no está o si falló
+  // Fallback seguro si la API key tuviere algun problema momentaneo
   if (!aiAnswer) {
     if (stock === 0) {
       aiAnswer = `¡Hola! Muchas gracias por tu consulta. Te comento que "${title}" se encuentra temporalmente AGOTADO. Estamos gestionando el reingreso con la editorial. ¡Saludos cordiales, Darío!`;
@@ -207,7 +207,7 @@ REGLAS DE RESPUESTA:
     }
   }
 
-  // 1. Intentar publicar la respuesta en Mercado Libre
+  // 1. Publicar la respuesta en Mercado Libre
   if (questionId && !questionId.startsWith('SIM_')) {
     try {
       fetchMeliApi('/answers', 'post', {
