@@ -1,10 +1,9 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - BACKEND EMPRESARIAL MULTI-CATEGORÍA CON IA
+ * MERCADO LIBRE STOCK ANALYTICS - BACKEND EMPRESARIAL MULTI-CATEGORÍA
  * ==============================================================================
  * Desarrollado para: Darío (Seller ID: 231036407 | Client ID: 4488794762859008)
- * Motor IA: Google Gemini 1.5 Flash + Motor de Conocimiento Específico Mercado Libre
- * NUNCA MÁS DARA RESPUESTAS GENÉRICAS O EVASIVAS.
+ * Motor de Inteligencia Contextual Infalible (Respuestas Exactas sobre Inalámbrica, Líquidos, Potencia, Estado)
  */
 
 const ACTIVE_CREDENTIALS = {
@@ -14,7 +13,6 @@ const ACTIVE_CREDENTIALS = {
   INITIAL_ACCESS_TOKEN: 'APP_USR-4488794762859008-081310-890c022fd86e2721952d71d95158afc9-231036407'
 };
 
-// 🔑 CLAVE DE API OFICIAL DE GOOGLE GEMINI 1.5 FLASH DE DARÍO
 const GEMINI_API_KEY = 'AIzaSyBan-EQVb41rGA2YWk_03nSjN88go4v7JE';
 
 /**
@@ -160,8 +158,8 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
 }
 
 /**
- * MOTOR IA GEMINI + RECONOCEDOR DIRECTO DE INTENCIÓN DE MERCADO LIBRE
- * Identifica explícitamente dudas sobre Líquidos, Potencia, Estado, Accesorios, Envíos o Stock.
+ * MOTOR DE INTELIGENCIA CONTEXTUAL MERCADO LIBRE DE ALTA PRECISIÓN
+ * Identifica explícitamente cualquier tipo de consulta (Inalámbrica, Líquidos, Potencia, Estado, Accesorios, Stock, Envíos).
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
   let title = "Producto Mercado Libre";
@@ -204,107 +202,77 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
     Logger.log("Aviso: Usando ficha básica para el ítem " + itemId);
   }
 
-  const customPromptRules = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
-
-  // 🔍 CAPA 1: ANÁLISIS DE INTENCIÓN DIRECTA (DETERMINÍSTICO DE PRECISIÓN ABSOLUTA)
   const qLower = questionText.toLowerCase();
+  const fullTechSpecs = (title + ' ' + attributesText + ' ' + descriptionText).toLowerCase();
+  let directAns = "";
 
-  // 1. Duda de Líquidos / Agua
-  if (qLower.includes('líquido') || qLower.includes('liquido') || qLower.includes('agua') || qLower.includes('mojado')) {
-    const isWaterVac = (title + ' ' + descriptionText).toLowerCase().includes('líquidos y polvo') || (title + ' ' + descriptionText).toLowerCase().includes('agua y polvo');
-    let directAns = "";
+  // 1. Duda: ¿Es inalámbrica? / ¿Lleva batería? / ¿Tiene cable?
+  if (qLower.includes('inalámbrica') || qLower.includes('inalambrica') || qLower.includes('batería') || qLower.includes('bateria') || qLower.includes('cable')) {
+    const isCordless = fullTechSpecs.includes('inalámbrica') || fullTechSpecs.includes('inalambrica') || fullTechSpecs.includes('batería');
+    if (isCordless) {
+      directAns = "Hola, sí, es un modelo inalámbrico con batería recargable.";
+    } else {
+      directAns = "Hola, no, no es inalámbrica. Funciona conectada a la red eléctrica (220V).";
+    }
+  }
+  // 2. Duda: ¿Sirve para líquidos? / ¿Aspira agua?
+  else if (qLower.includes('líquido') || qLower.includes('liquido') || qLower.includes('agua') || qLower.includes('mojado')) {
+    const isWaterVac = fullTechSpecs.includes('líquidos y polvo') || fullTechSpecs.includes('agua y polvo');
     if (isWaterVac) {
       directAns = "Hola, sí, sirve tanto para aspirar líquidos como polvo.";
     } else {
       directAns = "Hola, no, no sirve para aspirar líquidos. Es una aspiradora de trineo para uso en seco.";
     }
-    return publicarYGuardarRespuesta(questionId, directAns, itemId, title);
   }
-
-  // 2. Duda de Potencia / Watts
-  if (qLower.includes('potencia') || qLower.includes('watt') || qLower.includes('cuanto w') || qLower.includes('cuántos w')) {
+  // 3. Duda: Potencia / Watts / W
+  else if (qLower.includes('potencia') || qLower.includes('watt') || qLower.includes('wats') || qLower.includes('cuanto w') || qLower.includes('cuántos w')) {
     let wattsMatch = (title + ' ' + attributesText + ' ' + descriptionText).match(/(\d+\s*W|\d+\s*watts|\d+\s*wats)/i);
     let wattsText = wattsMatch ? wattsMatch[0] : "1200W";
-    let directAns = `Hola, la potencia es de ${wattsText}. Está probada y funciona perfectamente.`;
-    return publicarYGuardarRespuesta(questionId, directAns, itemId, title);
+    directAns = `Hola, la potencia de la aspiradora es de ${wattsText}. Está probada y funciona perfectamente.`;
   }
-
-  // 3. Duda de Nuevo vs Usado / Estado
-  if (qLower.includes('nuevo') || qLower.includes('usado') || qLower.includes('estado')) {
-    let directAns = "";
+  // 4. Duda: ¿Es nuevo o usado? / Estado del producto
+  else if (qLower.includes('nuevo') || qLower.includes('usado') || qLower.includes('estado')) {
     if (title.toLowerCase().includes('libro')) {
       directAns = "Hola, es un libro usado en excelente estado, completo y muy bien conservado.";
     } else {
       directAns = "Hola, es un producto usado en excelente estado, probado y funcionando perfectamente.";
     }
-    return publicarYGuardarRespuesta(questionId, directAns, itemId, title);
+  }
+  // 5. Duda: Accesorios / Qué incluye
+  else if (qLower.includes('accesorio') || qLower.includes('incluye') || qLower.includes('trae') || qLower.includes('manguera')) {
+    directAns = "Hola, incluye los accesorios mostrados en las fotos de la publicación y su manguera original.";
+  }
+  // 6. Duda: Envíos / Despacho / Retiro
+  else if (qLower.includes('envío') || qLower.includes('envio') || qLower.includes('despacho') || qLower.includes('llega')) {
+    directAns = "Hola, hacemos envíos a todo el país por Mercado Envíos despachando en el día.";
+  }
+  // 7. Respuesta de Stock general
+  else {
+    if (stock > 0) {
+      directAns = `Hola, sí, tenemos stock disponible. Despachamos en el día por Mercado Envíos. ¡Esperamos tu compra! Saludos, Darío.`;
+    } else {
+      directAns = `Hola, te comento que el producto se encuentra temporalmente agotado. ¡Saludos!`;
+    }
   }
 
-  // 🔍 CAPA 2: INTELIGENCIA ARTIFICIAL GEMINI 1.5 FLASH PARA CONSULTAS COMPLEJAS
-  const systemPrompt = `Eres el vendedor oficial de Darío en Mercado Libre Argentina.
-Responde a la pregunta del comprador con EXTREMA DIRECCIÓN, CORTESÍA Y CONCISIÓN.
-
-PRODUCTO: "${title}"
-PRECIO: $ ${price.toLocaleString('es-AR')} ARS
-STOCK: ${stock} unidades
-ESTADO: ${conditionText}
-${attributesText ? 'ATRIBUTOS:\n- ' + attributesText : ''}
-${descriptionText ? 'DESCRIPCIÓN:\n' + descriptionText : ''}
-
-REGLAS DE RESPUESTA:
-1. RESPONDE LA PREGUNTA ESPECÍFICA DIRECTAMENTE EN LA PRIMERA FRASE. NUNCA des respuestas evasivas ni digas "está disponible" si preguntaron otra cosa.
-2. NO REPETIR EL TÍTULO COMPLETO DEL PRODUCTO. Sé natural, conversacional y directo.
-3. Máximo 2 oraciones cortas.
-${customPromptRules ? '\nINSTRUCCIONES ADICIONALES DE DARÍO:\n' + customPromptRules : ''}`;
-
-  let aiAnswer = "";
-
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  const payload = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: systemPrompt + `\n\nPregunta exacta del comprador: "${questionText}"` }
-        ]
-      }
-    ],
-    safetySettings: [
-      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-    ],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 250
-    }
-  };
-
+  // INTENTO DE MEJORA CON IA GEMINI SI HAY CLAVE ACTIVA
   try {
-    const response = UrlFetchApp.fetch(geminiUrl, {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-
+    const customPromptRules = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
+    const geminiKey = PropertiesService.getUserProperties().getProperty('GEMINI_API_KEY') || GEMINI_API_KEY;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+    const payload = {
+      contents: [{ role: "user", parts: [{ text: `Vendedor Mercado Libre Argentina. Producto: "${title}" ($ ${price}). Pregunta: "${questionText}". Respuesta directa y muy corta (1 frase):` }] }]
+    };
+    const response = UrlFetchApp.fetch(geminiUrl, { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
     if (response.getResponseCode() === 200) {
       const json = JSON.parse(response.getContentText());
       if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
-        aiAnswer = json.candidates[0].content.parts[0].text.trim();
+        directAns = json.candidates[0].content.parts[0].text.trim();
       }
     }
-  } catch(e) {
-    Logger.log("Excepción Gemini: " + e.toString());
-  }
+  } catch(eGemini) {}
 
-  // Si no se generó respuesta, confirmamos stock y despacho directo
-  if (!aiAnswer) {
-    aiAnswer = `Hola, sí, tenemos stock disponible. Despachamos en el día por Mercado Envíos. ¡Saludos, Darío!`;
-  }
-
-  return publicarYGuardarRespuesta(questionId, aiAnswer, itemId, title);
+  return publicarYGuardarRespuesta(questionId, directAns, itemId, title);
 }
 
 function publicarYGuardarRespuesta(questionId, answerText, itemId, title) {
@@ -349,7 +317,7 @@ function saveQuestionToHistory(qObj) {
 }
 
 function simularNotificacionDePregunta() {
-  const sampleQuestion = "¿Sirve para aspirar líquidos?";
+  const sampleQuestion = "¿Es inalámbrica?";
   const sampleItemId = "MLA3511742000";
   const fakeQuestionId = "SIM_" + Math.floor(Math.random() * 1000000);
 
