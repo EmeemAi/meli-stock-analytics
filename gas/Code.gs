@@ -193,7 +193,7 @@ REGLAS DE ORO DEL VENDEDOR:
 2. RESPUESTA DIRECTA A LA DUDA: Responde con honestidad la consulta puntual (ej: si es inalámbrica o no, si sirve para líquidos, etc.).
 3. PUNTOS FUERTES Y VALOR AGREGADO: Destaca las fortalezas del producto (ej: su gran potencia de 1200W, excelente estado probado, o excelente conservación si es libro) y aclara que se despacha en el día por Mercado Envíos a todo el país.
 4. INDUCCIÓN Y LLAMADO A LA VENTA: Finaliza incentivando la compra de forma entusiasta. Ejemplo: "¡Esperamos tu compra para despachártelo hoy mismo! Saludos, Darío."
-5. LONGITUD: 2 a 3 oraciones dinámicas, cordiales y vendedoras.
+5. LONGITUD: Responde en 2 a 3 oraciones completas y fluidas. NUNCA cortes la respuesta a la mitad.
 ${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules : ''}`;
 
   let aiAnswer = "";
@@ -205,6 +205,7 @@ ${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules :
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
   ];
 
+  // Ampliado a 1000 tokens para que NUNCA se corte a la mitad la generación de Gemini
   const payload = {
     contents: [
       {
@@ -216,7 +217,7 @@ ${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules :
     ],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 250
+      maxOutputTokens: 1000
     }
   };
 
