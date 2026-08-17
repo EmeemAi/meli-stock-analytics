@@ -1,11 +1,10 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - BACKEND EMPRESARIAL DE AUTOMATIZACIÓN E IA
+ * MERCADO LIBRE STOCK ANALYTICS - BACKEND EMPRESARIAL MULTI-CATEGORÍA CON IA
  * ==============================================================================
  * Desarrollado para: Darío (Seller ID: 231036407 | Client ID: 4488794762859008)
- * Motor IA: Google Gemini 1.5 Flash
- * Auto-Renovación de Tokens OAuth 2.0 en Segundo Plano sin Expiración
- * Sistema de Respuesta Doble Capa: Webhook en Tiempo Real + Escáner Automático
+ * Motor IA: Google Gemini 1.5 Flash (Soporte Universal: Libros, Electrodomésticos, Digital)
+ * Auto-Renovación de Tokens OAuth 2.0 + Lector de Descripción y Atributos MeLi
  */
 
 const ACTIVE_CREDENTIALS = {
@@ -103,7 +102,6 @@ function fetchMeliApi(endpoint, method = 'get', payload = null, retryCount = 0) 
 
 /**
  * BUSCADOR Y RESPONDEDOR EN VIVO DE PREGUNTAS PENDIENTES REALES
- * Busca directamente en la API de Mercado Libre todas las preguntas sin responder de la cuenta
  */
 function responderPreguntasPendientesEnVivo() {
   Logger.log("🔎 Escaneando la cuenta de Mercado Libre en busca de preguntas pendientes...");
@@ -163,43 +161,83 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
 }
 
 /**
- * MOTOR IA GOOGLE GEMINI 1.5 FLASH: Responde y publica automáticamente en Mercado Libre
+ * MOTOR IA GOOGLE GEMINI 1.5 FLASH: MOTOR UNIVERSAL MULTI-CATEGORÍA
+ * Lee automáticamente Descripción Completa y Atributos Técnicos para cualquier producto (Aspiradoras, Libros, etc.)
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
-  let itemData = { title: "Libro Con Toda Intención - C.e. Feiling", price: 17900, available_quantity: 1 };
+  let title = "Producto de Darío en Mercado Libre";
+  let price = 0;
+  let stock = 1;
+  let conditionText = "Usado en muy buen estado";
+  let descriptionText = "";
+  let attributesText = "";
+
   try {
-    itemData = fetchMeliApi(`/items/${itemId}`);
+    const itemData = fetchMeliApi(`/items/${itemId}`);
+    title = itemData.title || title;
+    price = itemData.price || price;
+    stock = itemData.available_quantity !== undefined ? itemData.available_quantity : stock;
+    
+    if (itemData.condition === 'new') {
+      conditionText = "Nuevo en caja original";
+    } else if (itemData.condition === 'used') {
+      conditionText = "Usado en muy buen estado, muy bien conservado y probado";
+    }
+
+    // Extraer atributos técnicos oficiales (accesorios, marca, potencia, voltaje, etc.)
+    if (itemData.attributes && Array.isArray(itemData.attributes)) {
+      const usefulAttrs = itemData.attributes
+        .filter(a => a.value_name && a.name)
+        .map(a => `${a.name}: ${a.value_name}`)
+        .slice(0, 10);
+      if (usefulAttrs.length > 0) {
+        attributesText = usefulAttrs.join('\n- ');
+      }
+    }
+
+    // Extraer la Descripción Oficial redactada por Darío en la publicación
+    try {
+      const descData = fetchMeliApi(`/items/${itemId}/description`);
+      if (descData && descData.plain_text) {
+        descriptionText = descData.plain_text.substring(0, 1500);
+      }
+    } catch(eDesc) {}
+
   } catch(e) {
-    Logger.log("Aviso: Usando datos de respaldo para el ítem " + itemId);
+    Logger.log("Aviso: Usando ficha técnica básica para el ítem " + itemId);
   }
 
-  const title = itemData.title || '';
-  const price = itemData.price || 0;
-  const stock = itemData.available_quantity !== undefined ? itemData.available_quantity : 0;
-  const isDigital = itemId === 'MLA3552682426' || itemId === 'MLA2040505392' || itemId === 'MLA1458925371';
+  const isDigital = itemId === 'MLA3552682426' || itemId === 'MLA2040505392' || itemId === 'MLA1458925371' || title.toLowerCase().includes('pdf') || title.toLowerCase().includes('imprimible');
 
-  // 📝 SYSTEM PROMPT OFICIAL DE DARÍO (CONFIGURACIÓN DE LIBROS USADOS EN EXCELENTE ESTADO)
-  const systemPrompt = `Eres el asesor oficial de ventas de la librería de Darío en Mercado Libre Argentina.
-Tu objetivo es responder la consulta de un comprador usando SOLO los datos del producto a continuación.
+  // 📝 SYSTEM PROMPT UNIVERSAL INTELIGENTE MULTI-CATEGORÍA
+  const systemPrompt = `Eres el asesor oficial de ventas de Darío en Mercado Libre Argentina.
+Tu objetivo es responder la consulta de un comprador utilizando ÚNICAMENTE los datos oficiales del producto a continuación.
 
 FICHA OFICIAL DEL PRODUCTO:
-- Título: "${title}"
-- Precio: $ ${price.toLocaleString('es-AR')} ARS
+- Título Oficial: "${title}"
+- Precio Oficial: $ ${price.toLocaleString('es-AR')} ARS
 - Stock Disponible: ${stock} unidades
-- Estado: USADO EN EXCELENTE ESTADO (Libro usado, muy bien conservado, completo y sin hojas faltantes).
-- Tipo de Envío: ${isDigital ? 'Envío Digital Inmediato en PDF' : 'Mercado Envíos a todo el país'}
+- Estado / Condición: ${conditionText}
+${attributesText ? '- Atributos Técnicos:\n- ' + attributesText : ''}
+${descriptionText ? '- Descripción Oficial de la Publicación:\n' + descriptionText : ''}
 
 REGLAS STRICTAS DE RESPUESTA:
-- Sé amable, cortés y profesional. Saluda con "¡Hola! Muchas gracias por tu consulta."
-- SI PREGUNTAN POR EL ESTADO: Aclara siempre que es un LIBRO USADO EN EXCELENTE ESTADO, completo y muy bien conservado. NUNCA digas que es un libro "nuevo".
-- Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado y que gestionas el reingreso con la editorial/distribuidor.
-- Si es producto digital (agendas PDF o CV), aclara que la entrega es digital e inmediata en PDF listo para descargar e imprimir.
-- Si hay stock físico, confirma disponibilidad, precio oficial y aclara envíos por Mercado Envíos despachando en el día.
-- Mantén la respuesta concisa (máximo 350 caracteres) lista para enviar a Mercado Libre.`;
+1. Saludo cordial: Comienza siempre con "¡Hola! Muchas gracias por tu consulta."
+2. RECONOCIMIENTO DE CATEGORÍA:
+   - Identifica el tipo de producto por su título (ej: si es una Aspiradora o Electrodoméstico, responde sobre la aspiradora; si es un Libro, responde sobre el libro). NUNCA llames "libro" a un electrodoméstico o producto que no sea un libro.
+3. CONSULTAS DE ACCESORIOS / ESPECIFICACIONES:
+   - Si el comprador pregunta qué incluye, accesorios, potencia o detalles técnicos, busca la información en la Descripción Oficial y Atributos arriba provistos y responde con precisión exacta.
+4. ESTADO Y CONDICIÓN:
+   - Si es un producto Usado, aclara que está usado en muy buen estado y funcionando perfectamente. Si es Nuevo, confirma nuevo.
+5. GESTIÓN DE STOCK Y ENVÍO:
+   - Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado.
+   - Si es producto digital, aclara entrega e impresión digital inmediata en PDF.
+   - Si hay stock físico, confirma precio ($ ${price.toLocaleString('es-AR')} ARS) y despacho en el día por Mercado Envíos a todo el país.
+6. Cierre conciso (máximo 350 caracteres): "¡Esperamos tu compra! Saludos, Darío."`;
 
   let aiAnswer = "";
 
-  // Llamada oficial a Google Gemini 1.5 Flash con la API Key real de Darío
+  // Llamada a Google Gemini 1.5 Flash con la API Key real de Darío
   if (GEMINI_API_KEY) {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const payload = {
@@ -228,14 +266,14 @@ REGLAS STRICTAS DE RESPUESTA:
     }
   }
 
-  // Fallback seguro de respaldo en caso de desconexión momentánea de API Key
+  // Fallback de respaldo universal
   if (!aiAnswer) {
     if (stock === 0) {
-      aiAnswer = `¡Hola! Muchas gracias por tu consulta. Te comento que "${title}" se encuentra temporalmente AGOTADO. Estamos gestionando el reingreso. ¡Saludos cordiales, Darío!`;
+      aiAnswer = `¡Hola! Muchas gracias por tu consulta. Te comento que "${title}" se encuentra temporalmente AGOTADO. Saludos cordiales, Darío.`;
     } else if (isDigital) {
-      aiAnswer = `¡Hola! Sí, tenemos stock disponible permanente. El envío es digital e inmediato en formato PDF listo para imprimir tras la compra. ¡Esperamos tu compra! Saludos, Darío.`;
+      aiAnswer = `¡Hola! Sí, tenemos stock disponible. El envío es digital e inmediato en formato PDF listo para descargar. ¡Esperamos tu compra! Saludos, Darío.`;
     } else {
-      aiAnswer = `¡Hola! Muchas gracias por consultar. El libro "${title}" es usado en excelente estado, completo y muy bien conservado. Tenemos stock por $ ${price.toLocaleString('es-AR')} ARS y despachamos hoy mismo por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
+      aiAnswer = `¡Hola! Muchas gracias por consultar. "${title}" se encuentra disponible por $ ${price.toLocaleString('es-AR')} ARS en excelente estado. Despachamos en el día por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
     }
   }
 
@@ -284,8 +322,8 @@ function saveQuestionToHistory(qObj) {
  * TEST DIRECTO: Ejecutar en Apps Script para verificar funcionamiento de Gemini y Notificaciones
  */
 function simularNotificacionDePregunta() {
-  const sampleQuestion = "¿Hola! Tienen stock disponible de este libro y en qué estado está?";
-  const sampleItemId = "MLA3511742000"; // Libro Ética Para Amador - Savater
+  const sampleQuestion = "¿Qué accesorios incluye la compra?";
+  const sampleItemId = "MLA3511742000";
   const fakeQuestionId = "SIM_" + Math.floor(Math.random() * 1000000);
 
   Logger.log("🚀 Simulando pregunta entrante en tiempo real...");
