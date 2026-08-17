@@ -243,6 +243,26 @@ function initAiAssistantControls() {
     });
   }
 
+  const btnSavePrompt = document.getElementById('btnSaveCustomPrompt');
+  const customPromptInput = document.getElementById('customPromptInput');
+  if (btnSavePrompt && customPromptInput) {
+    btnSavePrompt.addEventListener('click', () => {
+      const promptVal = customPromptInput.value.trim();
+      state.customPrompt = promptVal;
+      localStorage.setItem('MELI_CUSTOM_PROMPT', promptVal);
+
+      const baseUrl = state.gasUrl || DEFAULT_ENDPOINT;
+      const sep = baseUrl.includes('?') ? '&' : '?';
+      const saveUrl = `${baseUrl}${sep}custom_prompt=${encodeURIComponent(promptVal)}&t=${Date.now()}`;
+
+      fetch(saveUrl, { mode: 'no-cors' }).then(() => {
+        alert('💾 ¡Entrenamiento de la IA guardado exitosamente! Tu bot responderá en vivo siguiendo estas reglas.');
+      }).catch(() => {
+        alert('💾 Entrenamiento guardado localmente.');
+      });
+    });
+  }
+
   updateAiItemPreview();
 }
 

@@ -399,6 +399,23 @@
           </div>
         </div>
 
+        <!-- ENTRENADOR Y EDITOR DEL PROMPT DE LA IA (CONFIGURACIÓN DESDE LA WEB) -->
+        <div style="margin-top: 24px; background: rgba(0,0,0,0.4); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: var(--radius-md); padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <h3 style="color: #a5b4fc; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                <span>⚙️</span> Entrenador & Editor de Instrucciones de la IA (System Prompt)
+              </h3>
+              <p style="font-size: 0.83rem; color: var(--text-dim); margin-top: 4px;">Modifica o agrega las reglas de tu negocio directamente desde la web sin entrar a Apps Script. La IA responderá a tus compradores respetando tus indicaciones exactas.</p>
+            </div>
+            <button class="btn btn-primary" id="btnSaveCustomPrompt" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
+              <span>💾</span> Guardar Entrenamiento de la IA
+            </button>
+          </div>
+
+          <textarea id="customPromptInput" rows="5" class="input-text" placeholder="Escribe aquí las reglas de tu negocio para la IA... Ejemplo: - Si preguntan el estado del producto, especifica que si es libro es usado en excelente estado, o si es un electrodoméstico aclara muy poco uso y probado. - Si preguntan la potencia (ej: 1200W), infórmala según el título o ficha oficial." style="width: 100%; resize: vertical; background: #0f172a; font-family: monospace; font-size: 0.88rem; line-height: 1.5; color: #f8fafc; padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);"></textarea>
+        </div>
+
         <!-- HISTORIAL DE PREGUNTAS RECIBIDAS EN VIVO EN MERCADO LIBRE -->
         <div style="margin-top: 24px; background: rgba(0,0,0,0.4); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: var(--radius-md); padding: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">

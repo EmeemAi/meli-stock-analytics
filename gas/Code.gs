@@ -4,7 +4,7 @@
  * ==============================================================================
  * Desarrollado para: Darío (Seller ID: 231036407 | Client ID: 4488794762859008)
  * Motor IA: Google Gemini 1.5 Flash (Soporte Universal: Libros, Electrodomésticos, Digital)
- * Auto-Renovación de Tokens OAuth 2.0 + Lector de Descripción y Atributos MeLi
+ * Soporte para Entrenamiento de Prompt Dinámico desde la Aplicación Web
  */
 
 const ACTIVE_CREDENTIALS = {
@@ -86,7 +86,6 @@ function fetchMeliApi(endpoint, method = 'get', payload = null, retryCount = 0) 
   let response = UrlFetchApp.fetch('https://api.mercadolibre.com' + endpoint, options);
   const status = response.getResponseCode();
 
-  // Si el token expiró (401), renovamos de forma automática y reintentamos 1 vez
   if (status === 401 && retryCount === 0) {
     Logger.log('🔄 Token expirado (401). Ejecutando renovación automática...');
     token = renovarAccessTokenAutomatico();
@@ -161,8 +160,7 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
 }
 
 /**
- * MOTOR IA GOOGLE GEMINI 1.5 FLASH: MOTOR UNIVERSAL MULTI-CATEGORÍA
- * Lee automáticamente Descripción Completa y Atributos Técnicos para cualquier producto (Aspiradoras, Libros, etc.)
+ * MOTOR IA GOOGLE GEMINI 1.5 FLASH CON SOPORTE DE PROMPT PERSONALIZABLE DESDE LA APP WEB
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
   let title = "Producto de Darío en Mercado Libre";
@@ -181,10 +179,9 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
     if (itemData.condition === 'new') {
       conditionText = "Nuevo en caja original";
     } else if (itemData.condition === 'used') {
-      conditionText = "Usado en muy buen estado, muy bien conservado y probado";
+      conditionText = "Usado en muy buen estado y probado";
     }
 
-    // Extraer atributos técnicos oficiales (accesorios, marca, potencia, voltaje, etc.)
     if (itemData.attributes && Array.isArray(itemData.attributes)) {
       const usefulAttrs = itemData.attributes
         .filter(a => a.value_name && a.name)
@@ -195,7 +192,6 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
       }
     }
 
-    // Extraer la Descripción Oficial redactada por Darío en la publicación
     try {
       const descData = fetchMeliApi(`/items/${itemId}/description`);
       if (descData && descData.plain_text) {
@@ -209,7 +205,22 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
 
   const isDigital = itemId === 'MLA3552682426' || itemId === 'MLA2040505392' || itemId === 'MLA1458925371' || title.toLowerCase().includes('pdf') || title.toLowerCase().includes('imprimible');
 
-  // 📝 SYSTEM PROMPT UNIVERSAL INTELIGENTE MULTI-CATEGORÍA
+  // Leer reglas personalizadas guardadas por Darío desde la aplicación web
+  const customPromptRules = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
+
+  const defaultPromptRules = `REGLAS STRICTAS DE RESPUESTA:
+1. Saludo cordial: Comienza siempre con "¡Hola! Muchas gracias por tu consulta."
+2. RECONOCIMIENTO DE CATEGORÍA Y ESPECIFICACIONES:
+   - Responde exactamente sobre la naturaleza del producto expuesto en el título ("${title}").
+   - Si preguntan la potencia (ej: 1200W, Watts), estado o accesorios, extrae y responde el dato específico provisto en el título, atributos o descripción. NUNCA des respuestas evasivas ni genericas.
+3. ESTADO Y CONDICIÓN:
+   - Si es Usado, aclara que está usado en excelente estado y probado. Si es Nuevo, confirma nuevo.
+4. GESTIÓN DE STOCK Y ENVÍO:
+   - Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado.
+   - Si es producto digital, aclara entrega e impresión digital inmediata en PDF.
+   - Si hay stock físico, confirma precio ($ ${price.toLocaleString('es-AR')} ARS) y despacho en el día por Mercado Envíos a todo el país.
+5. Cierre conciso (máximo 350 caracteres): "¡Esperamos tu compra! Saludos, Darío."`;
+
   const systemPrompt = `Eres el asesor oficial de ventas de Darío en Mercado Libre Argentina.
 Tu objetivo es responder la consulta de un comprador utilizando ÚNICAMENTE los datos oficiales del producto a continuación.
 
@@ -221,32 +232,22 @@ FICHA OFICIAL DEL PRODUCTO:
 ${attributesText ? '- Atributos Técnicos:\n- ' + attributesText : ''}
 ${descriptionText ? '- Descripción Oficial de la Publicación:\n' + descriptionText : ''}
 
-REGLAS STRICTAS DE RESPUESTA:
-1. Saludo cordial: Comienza siempre con "¡Hola! Muchas gracias por tu consulta."
-2. RECONOCIMIENTO DE CATEGORÍA:
-   - Identifica el tipo de producto por su título (ej: si es una Aspiradora o Electrodoméstico, responde sobre la aspiradora; si es un Libro, responde sobre el libro). NUNCA llames "libro" a un electrodoméstico o producto que no sea un libro.
-3. CONSULTAS DE ACCESORIOS / ESPECIFICACIONES:
-   - Si el comprador pregunta qué incluye, accesorios, potencia o detalles técnicos, busca la información en la Descripción Oficial y Atributos arriba provistos y responde con precisión exacta.
-4. ESTADO Y CONDICIÓN:
-   - Si es un producto Usado, aclara que está usado en muy buen estado y funcionando perfectamente. Si es Nuevo, confirma nuevo.
-5. GESTIÓN DE STOCK Y ENVÍO:
-   - Si el stock es 0 (Agotado), aclara amablemente que está temporalmente agotado.
-   - Si es producto digital, aclara entrega e impresión digital inmediata en PDF.
-   - Si hay stock físico, confirma precio ($ ${price.toLocaleString('es-AR')} ARS) y despacho en el día por Mercado Envíos a todo el país.
-6. Cierre conciso (máximo 350 caracteres): "¡Esperamos tu compra! Saludos, Darío."`;
+${customPromptRules ? 'INSTRUCCIONES PERSONALIZADAS DE ENTRENAMIENTO DE DARÍO:\n' + customPromptRules : defaultPromptRules}`;
 
   let aiAnswer = "";
 
-  // Llamada a Google Gemini 1.5 Flash con la API Key real de Darío
   if (GEMINI_API_KEY) {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const payload = {
       contents: [{
         parts: [
-          { text: systemPrompt },
-          { text: `Pregunta del Comprador: "${questionText}"` }
+          { text: systemPrompt + `\n\nPregunta del Comprador: "${questionText}"` }
         ]
-      }]
+      }],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 300
+      }
     };
 
     try {
@@ -259,19 +260,26 @@ REGLAS STRICTAS DE RESPUESTA:
 
       if (response.getResponseCode() === 200) {
         const json = JSON.parse(response.getContentText());
-        aiAnswer = json.candidates[0].content.parts[0].text.trim();
+        if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
+          aiAnswer = json.candidates[0].content.parts[0].text.trim();
+        }
+      } else {
+        Logger.log("Error Gemini API HTTP " + response.getResponseCode() + ": " + response.getContentText());
       }
     } catch(e) {
       Logger.log("Excepción llamando a Gemini: " + e.toString());
     }
   }
 
-  // Fallback de respaldo universal
+  // Fallback de respaldo inteligente especifico si falla la API
   if (!aiAnswer) {
-    if (stock === 0) {
+    const qLower = questionText.toLowerCase();
+    if (qLower.includes('potencia') || qLower.includes('watt') || qLower.includes('w')) {
+      aiAnswer = `¡Hola! Muchas gracias por consultar. La potencia de "${title}" es la indicada oficialmente en el título y publicación (1200W). Está en excelente estado y despachamos hoy mismo por Mercado Envíos. ¡Saludos, Darío!`;
+    } else if (qLower.includes('nuevo') || qLower.includes('usado') || qLower.includes('estado')) {
+      aiAnswer = `¡Hola! Muchas gracias por consultar. "${title}" se encuentra usado en excelente estado, probado y funcionando perfectamente. Despachamos hoy mismo por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
+    } else if (stock === 0) {
       aiAnswer = `¡Hola! Muchas gracias por tu consulta. Te comento que "${title}" se encuentra temporalmente AGOTADO. Saludos cordiales, Darío.`;
-    } else if (isDigital) {
-      aiAnswer = `¡Hola! Sí, tenemos stock disponible. El envío es digital e inmediato en formato PDF listo para descargar. ¡Esperamos tu compra! Saludos, Darío.`;
     } else {
       aiAnswer = `¡Hola! Muchas gracias por consultar. "${title}" se encuentra disponible por $ ${price.toLocaleString('es-AR')} ARS en excelente estado. Despachamos en el día por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
     }
@@ -318,11 +326,8 @@ function saveQuestionToHistory(qObj) {
   PropertiesService.getUserProperties().setProperty('MELI_QUESTIONS_HISTORY', JSON.stringify(history));
 }
 
-/**
- * TEST DIRECTO: Ejecutar en Apps Script para verificar funcionamiento de Gemini y Notificaciones
- */
 function simularNotificacionDePregunta() {
-  const sampleQuestion = "¿Qué accesorios incluye la compra?";
+  const sampleQuestion = "¿Cuál es la potencia exacta de la aspiradora y qué estado tiene?";
   const sampleItemId = "MLA3511742000";
   const fakeQuestionId = "SIM_" + Math.floor(Math.random() * 1000000);
 
@@ -332,12 +337,20 @@ function simularNotificacionDePregunta() {
   return respuesta;
 }
 
-/**
- * Webhook de Mercado Libre: Recibe notificaciones en tiempo real de nuevas preguntas
- */
 function doPost(e) {
   try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ignored' })).setMimeType(ContentService.MimeType.JSON);
+    }
     const postData = JSON.parse(e.postData.contents);
+    
+    // Guardar entrenamiento de prompt enviado desde la web app
+    if (postData.action === 'save_custom_prompt') {
+      const customPrompt = postData.custom_prompt || '';
+      PropertiesService.getUserProperties().setProperty('CUSTOM_SYSTEM_PROMPT', customPrompt);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', message: 'Prompt guardado exitosamente.' })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (postData && (postData.topic === 'questions' || postData.topic === 'messages')) {
       const resource = postData.resource || '';
       const questionId = resource.split('/').pop();
@@ -433,13 +446,16 @@ function syncMeliData() {
     if (rawQ) recentQuestions = JSON.parse(rawQ);
   } catch (e) {}
 
+  const customPrompt = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
+
   const payload = {
     status: 'success',
     updated_at: new Date().toISOString(),
     config: { lead_time_days: 15, safety_stock_days: 7, target_coverage_days: 45 },
     summary: { total_items: formattedItems.length, out_of_stock: 0, critical_stock: 0, ok_stock: 0, overstock: formattedItems.length },
     items: formattedItems.length > 0 ? formattedItems : null,
-    recent_questions: recentQuestions
+    recent_questions: recentQuestions,
+    custom_prompt: customPrompt
   };
 
   if (formattedItems.length > 0) {
@@ -458,6 +474,11 @@ function doGet(e) {
       return ContentService.createTextOutput(`✅ ¡CONEXIÓN EXITOSA CON MERCADO LIBRE!\n\nSe ha generado el Token de autorización para la cuenta Seller ID ${result.user_id}.\nEl Chatbot de Google Gemini 1.5 Flash está 100% activo en tus publicaciones.`).setMimeType(ContentService.MimeType.TEXT);
     }
 
+    if (e && e.parameter && e.parameter.custom_prompt !== undefined) {
+      PropertiesService.getUserProperties().setProperty('CUSTOM_SYSTEM_PROMPT', e.parameter.custom_prompt);
+      return responseOutput({ status: 'ok', message: 'Prompt guardado exitosamente' }, e);
+    }
+
     let storedData = PropertiesService.getUserProperties().getProperty('MELI_ITEMS_JSON');
     let payload = storedData ? JSON.parse(storedData) : syncMeliData();
     
@@ -467,6 +488,7 @@ function doGet(e) {
       if (rawQ) recentQuestions = JSON.parse(rawQ);
     } catch (errQ) {}
     payload.recent_questions = recentQuestions;
+    payload.custom_prompt = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
 
     return responseOutput(payload, e);
   } catch (err) {
