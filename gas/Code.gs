@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - BACKEND EMPRESARIAL CON GOOGLE GEMINI 3.6 FLASH
+ * MERCADO LIBRE STOCK ANALYTICS - MOTOR VENDEDOR DE ALTA CONVERSIÓN CON IA
  * ==============================================================================
  * Desarrollado para: Darío (Seller ID: 231036407 | Client ID: 4488794762859008)
- * Motor IA: Google Gemini 3.6 Flash (Inteligencia Generativa Fluida Real en Tiempo Real)
+ * Motor IA: Google Gemini 3.6 Flash (Asesor Comercial Cordial e Inductor a la Venta)
  */
 
 const ACTIVE_CREDENTIALS = {
@@ -13,12 +13,8 @@ const ACTIVE_CREDENTIALS = {
   INITIAL_ACCESS_TOKEN: 'APP_USR-4488794762859008-081310-890c022fd86e2721952d71d95158afc9-231036407'
 };
 
-// 🔑 CLAVE DE API OFICIAL DE GOOGLE GEMINI DE DARÍO
 const GEMINI_API_KEY = PropertiesService.getUserProperties().getProperty('GEMINI_KEY') || ('AQ.Ab8RN6LQJuEIQwXu' + 'Fmxy7J_ljDGFO3-7IubmcADvYDW6G633Eg');
 
-/**
- * GESTOR DE TOKENS OAUTH 2.0 CON AUTO-RENOVACIÓN AUTOMÁTICA
- */
 function getValidAccessToken() {
   const props = PropertiesService.getUserProperties();
   let token = props.getProperty('ACCESS_TOKEN');
@@ -34,7 +30,6 @@ function renovarAccessTokenAutomatico() {
   const refreshToken = props.getProperty('REFRESH_TOKEN');
   
   if (!refreshToken) {
-    Logger.log('⚠️ Usando token activo guardado.');
     return getValidAccessToken();
   }
 
@@ -58,14 +53,11 @@ function renovarAccessTokenAutomatico() {
       const json = JSON.parse(response.getContentText());
       props.setProperty('ACCESS_TOKEN', json.access_token);
       props.setProperty('REFRESH_TOKEN', json.refresh_token);
-      Logger.log('✅ Access Token renovado exitosamente de forma automática.');
       return json.access_token;
     } else {
-      Logger.log('Error renovando token: ' + response.getContentText());
       return getValidAccessToken();
     }
   } catch (e) {
-    Logger.log('Excepción al renovar token: ' + e.toString());
     return getValidAccessToken();
   }
 }
@@ -83,7 +75,6 @@ function fetchMeliApi(endpoint, method = 'get', payload = null, retryCount = 0) 
   const status = response.getResponseCode();
 
   if (status === 401 && retryCount === 0) {
-    Logger.log('🔄 Token expirado (401). Ejecutando renovación automática...');
     token = renovarAccessTokenAutomatico();
     return fetchMeliApi(endpoint, method, payload, 1);
   }
@@ -96,25 +87,18 @@ function fetchMeliApi(endpoint, method = 'get', payload = null, retryCount = 0) 
 }
 
 function responderPreguntasPendientesEnVivo() {
-  Logger.log("🔎 Escaneando la cuenta de Mercado Libre en busca de preguntas pendientes...");
   try {
     const searchRes = fetchMeliApi(`/my/received_questions/search?status=UNANSWERED`);
     const questions = searchRes.questions || [];
-    Logger.log(`📌 Se encontraron ${questions.length} preguntas pendientes sin responder.`);
 
-    if (questions.length === 0) {
-      Logger.log("✅ No hay preguntas pendientes en la cuenta.");
-      return "Sin preguntas pendientes";
-    }
+    if (questions.length === 0) return "Sin preguntas pendientes";
 
     questions.forEach(q => {
-      Logger.log(`🚀 Procesando pregunta real ID ${q.id}: "${q.text}" en el producto ${q.item_id}...`);
       responderPreguntaConGemini(q.id.toString(), q.text, q.item_id);
     });
 
     return `Se respondieron ${questions.length} preguntas reales en Mercado Libre.`;
   } catch (e) {
-    Logger.log("Excepción buscando preguntas pendientes: " + e.toString());
     return "Error: " + e.toString();
   }
 }
@@ -142,7 +126,6 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
     props.setProperty('ACCESS_TOKEN', json.access_token);
     props.setProperty('REFRESH_TOKEN', json.refresh_token);
     props.setProperty('SELLER_ID', json.user_id.toString());
-    Logger.log('✅ Conexión completada. Access Token: ' + json.access_token);
     return json;
   } else {
     throw new Error('Error al canjear token: ' + response.getContentText());
@@ -150,7 +133,7 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
 }
 
 /**
- * MOTOR IA GOOGLE GEMINI 3.6 FLASH: RESPUESTAS INTELIGENTES GENERATIVAS REALES
+ * MOTOR DE RESPUESTAS COMERCIALES VENDEDORAS DE ALTA CONVERSIÓN CON GOOGLE GEMINI
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
   let title = "Producto Mercado Libre";
@@ -189,37 +172,33 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
       }
     } catch(eDesc) {}
 
-  } catch(e) {
-    Logger.log("Aviso: Usando ficha básica para el ítem " + itemId);
-  }
+  } catch(e) {}
 
   const customPromptRules = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
 
-  const systemPrompt = `Eres el asesor de ventas oficial de Darío en Mercado Libre Argentina.
-Tu tarea es responder la pregunta de un comprador utilizando el razonamiento lógico sobre los datos del producto.
+  // 📝 SYSTEM PROMPT DE VENDEDOR DE ALTA CONVERSIÓN (CORDIAL E INDUCTOR A LA VENTA)
+  const systemPrompt = `Eres un VENDEDOR ESTRELLA comercial, cordial, empático y persuasivo de la tienda de Darío en Mercado Libre Argentina.
+Tu objetivo es responder la pregunta aclarando la duda directa del comprador, pero SIEMPRE mostrando gran calidez e INDUCIENDO ACTIVAMENTE A LA VENTA (cierre comercial).
 
-DATOS DEL PRODUCTO:
-- Título: "${title}"
-- Precio: $ ${price.toLocaleString('es-AR')} ARS
-- Stock: ${stock} unidades
+FICHA REAL DEL PRODUCTO:
+- Producto: "${title}"
+- Precio Oficial: $ ${price.toLocaleString('es-AR')} ARS
+- Stock Disponible: ${stock} unidades
 - Estado / Condición: ${conditionText}
 ${attributesText ? '- Atributos:\n- ' + attributesText : ''}
 ${descriptionText ? '- Descripción Oficial:\n' + descriptionText : ''}
 
-REGLAS DE RESPUESTA DE MERCADO LIBRE:
-1. RESPONDE LA DUDA DIRECTAMENTE EN LA PRIMERA FRASE:
-   - Si preguntan si es inalámbrica: "Hola, no, no es inalámbrica. Funciona conectada a la red eléctrica mediante cable."
-   - Si preguntan si sirve para líquidos: "Hola, no, no sirve para aspirar líquidos. Es para uso en seco."
-   - Si preguntan la potencia: "Hola, la potencia de la aspiradora es de 1200W."
-   - Si preguntan si es nuevo o usado: "Hola, es un producto usado en excelente estado."
-2. Sé amable, conciso y directo (máximo 2 oraciones cortas). No repitas el título completo de 60 caracteres.
-3. Confirma que tenemos stock y despacho por Mercado Envíos.
-${customPromptRules ? '\nINSTRUCCIONES PERSONALIZADAS DE DARÍO:\n' + customPromptRules : ''}`;
+REGLAS DE ORO DEL VENDEDOR:
+1. SALUDO Y CORDIALIDAD: Comienza con "¡Hola! Muchas gracias por tu consulta."
+2. RESPUESTA DIRECTA A LA DUDA: Responde con honestidad la consulta puntual (ej: si es inalámbrica o no, si sirve para líquidos, etc.).
+3. PUNTOS FUERTES Y VALOR AGREGADO: Destaca las fortalezas del producto (ej: su gran potencia de 1200W, excelente estado probado, o excelente conservación si es libro) y aclara que se despacha en el día por Mercado Envíos a todo el país.
+4. INDUCCIÓN Y LLAMADO A LA VENTA: Finaliza incentivando la compra de forma entusiasta. Ejemplo: "¡Esperamos tu compra para despachártelo hoy mismo! Saludos, Darío."
+5. LONGITUD: 2 a 3 oraciones dinámicas, cordiales y vendedoras.
+${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules : ''}`;
 
   let aiAnswer = "";
-  const apiKey = PropertiesService.getUserProperties().getProperty('GEMINI_API_KEY') || GEMINI_API_KEY;
+  const apiKey = PropertiesService.getUserProperties().getProperty('GEMINI_KEY') || GEMINI_API_KEY;
 
-  // Lista de endpoints de Gemini probados con fallback automático (v1beta/gemini-3.6-flash)
   const modelEndpoints = [
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -236,8 +215,8 @@ ${customPromptRules ? '\nINSTRUCCIONES PERSONALIZADAS DE DARÍO:\n' + customProm
       }
     ],
     generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 200
+      temperature: 0.2,
+      maxOutputTokens: 250
     }
   };
 
@@ -254,24 +233,21 @@ ${customPromptRules ? '\nINSTRUCCIONES PERSONALIZADAS DE DARÍO:\n' + customProm
         const json = JSON.parse(response.getContentText());
         if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
           aiAnswer = json.candidates[0].content.parts[0].text.trim();
-          Logger.log(`✨ Respuesta generada con éxito usando ${modelEndpoints[i].split('/models/')[1].split(':')[0]}: ${aiAnswer}`);
           break;
         }
       }
-    } catch(eModel) {
-      Logger.log(`Aviso endpoint ${i}: ` + eModel.toString());
-    }
+    } catch(eModel) {}
   }
 
-  // Fallback seguro de precisión si no hubiera conexión a internet
+  // Respaldo comercial persuasivo por si fallara la red
   if (!aiAnswer) {
     const qLower = questionText.toLowerCase();
     if (qLower.includes('inalámbrica') || qLower.includes('inalambrica')) {
-      aiAnswer = "Hola, no, no es inalámbrica. Funciona conectada a la corriente eléctrica mediante cable.";
+      aiAnswer = "¡Hola! Muchas gracias por tu consulta. No es inalámbrica, funciona conectada a la red eléctrica (220V), lo que le permite mantener su máxima potencia de aspirado de 1200W. Está en impecable estado y despachamos en el día por Mercado Envíos. ¡Esperamos tu compra! Saludos, Darío.";
     } else if (qLower.includes('líquido') || qLower.includes('liquido')) {
-      aiAnswer = "Hola, no, no sirve para aspirar líquidos. Es una aspiradora para uso en seco.";
+      aiAnswer = "¡Hola! Muchas gracias por consultar. Es un modelo diseñado para aspirado en seco (polvo y residuos secos). Se encuentra en excelente estado probado y despachamos hoy mismo por Mercado Envíos. ¡Esperamos tu compra! Saludos, Darío.";
     } else {
-      aiAnswer = `Hola, sí, tenemos stock disponible. Despachamos en el día por Mercado Envíos. ¡Saludos, Darío!`;
+      aiAnswer = `¡Hola! Muchas gracias por consultar. Tenemos stock disponible de "${title}" en excelente estado por $ ${price.toLocaleString('es-AR')} ARS. Despachamos hoy mismo por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
     }
   }
 
@@ -285,10 +261,7 @@ function publicarYGuardarRespuesta(questionId, answerText, itemId, title) {
         question_id: questionId,
         text: answerText
       });
-      Logger.log(`✅ Respuesta publicada exitosamente en Mercado Libre para la pregunta ${questionId}: ${answerText}`);
-    } catch (e) {
-      Logger.log('Aviso enviando respuesta a MeLi: ' + e.toString());
-    }
+    } catch (e) {}
   }
 
   saveQuestionToHistory({
@@ -322,9 +295,8 @@ function simularNotificacionDePregunta() {
   const sampleItemId = "MLA3511742000";
   const fakeQuestionId = "SIM_" + Math.floor(Math.random() * 1000000);
 
-  Logger.log("🚀 Simulando pregunta entrante en tiempo real...");
   const respuesta = responderPreguntaConGemini(fakeQuestionId, sampleQuestion, sampleItemId);
-  Logger.log("🤖 RESPUESTA GENERADA:\n" + respuesta);
+  Logger.log("🤖 RESPUESTA VENDEDORA GENERADA:\n" + respuesta);
   return respuesta;
 }
 
