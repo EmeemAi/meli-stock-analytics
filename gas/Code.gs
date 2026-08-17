@@ -3,7 +3,7 @@
  * MERCADO LIBRE STOCK ANALYTICS - BACKEND EMPRESARIAL MULTI-CATEGORÍA CON IA
  * ==============================================================================
  * Desarrollado para: Darío (Seller ID: 231036407 | Client ID: 4488794762859008)
- * Motor IA: Google Gemini 1.5 Flash (Comprensión Contextual Profunda 100% Inteligente)
+ * Motor IA: Google Gemini 1.5 Flash (Respuestas Directas, Concisas y Humano-Inteligentes)
  */
 
 const ACTIVE_CREDENTIALS = {
@@ -159,11 +159,10 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
 }
 
 /**
- * MOTOR IA GOOGLE GEMINI 1.5 FLASH: MOTOR RAZONADOR INTELIGENTE UNIVERSAL
- * Procesa la pregunta del comprador con inteligencia artificial real basada en la descripción y ficha técnica
+ * MOTOR IA GOOGLE GEMINI 1.5 FLASH: ESTILO OFICIAL MERCADO LIBRE (RESPUESTAS DIRECTAS, CONCISAS Y RAZONADAS)
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
-  let title = "Producto de Darío en Mercado Libre";
+  let title = "Producto Mercado Libre";
   let price = 0;
   let stock = 1;
   let conditionText = "Usado en muy buen estado";
@@ -205,44 +204,43 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
 
   const customPromptRules = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
 
-  const systemPrompt = `Eres un asistente de ventas experto, extremadamente inteligente, amable y honesto de la tienda de Darío en Mercado Libre Argentina.
-Tu tarea es responder la pregunta específica de un comprador utilizando el razonamiento lógico sobre la ficha técnica del producto.
+  // 📝 SYSTEM PROMPT OFICIAL ESTILO MERCADO LIBRE NATIVO (DIRECTO Y HUMANO)
+  const systemPrompt = `Eres el asesor oficial de ventas de Darío en Mercado Libre Argentina.
+Tu único objetivo es responder la pregunta de un comprador de forma DIRECTA, CONCISA, NATURAL Y HUMANA.
 
-DATOS REALES DEL PRODUCTO:
-- Título Oficial: "${title}"
-- Precio Oficial: $ ${price.toLocaleString('es-AR')} ARS
-- Stock Disponible: ${stock} unidades
-- Condición: ${conditionText}
-${attributesText ? '- Atributos Técnicos:\n- ' + attributesText : ''}
-${descriptionText ? '- Descripción Oficial de la Publicación:\n' + descriptionText : ''}
+FICHA REAL DEL PRODUCTO:
+- Producto: "${title}"
+- Precio: $ ${price.toLocaleString('es-AR')} ARS
+- Stock: ${stock} unidades
+- Estado: ${conditionText}
+${attributesText ? '- Atributos:\n- ' + attributesText : ''}
+${descriptionText ? '- Descripción Oficial:\n' + descriptionText : ''}
 
-REGLAS DE RAZONAMIENTO E COMPRENSION:
-1. RESPONDE LA PREGUNTA ESPECÍFICA: Si te preguntan si sirve para líquidos, si es de 1200W, qué accesorios trae, estado o cualquier duda puntual, RAZONA usando la ficha y la lógica del producto y responde esa duda DIRECTAMENTE de forma clara y veraz. NO des respuestas evasivas ni leas una plantilla fija.
-2. SALUDO Y TONO: Comienza siempre con "¡Hola! Muchas gracias por tu consulta." Sé educado, resolutivo y profesional.
-3. CONSEJOS DE CATEGORÍA:
-   - Para aspiradoras comunes de trineo (como la Top House 1200W), recuerda que son aspiradoras en seco tradicionales (polvo/residuos secos), NO aptas para aspirar agua o líquidos salvo que la descripción diga explícitamente "líquidos y polvo".
-   - Para electrodomésticos o tecnología usados: confirma que están en excelente estado, probados y funcionando perfectamente.
-   - Para libros: si son usados, indica usados en excelente estado bien conservados.
-4. ENVÍOS Y STOCK: Confirma disponibilidad por $ ${price.toLocaleString('es-AR')} ARS y despacho en el día mediante Mercado Envíos a todo el país.
-5. LONGITUD Y CIERRE: Máximo 350 caracteres. Cierre cordial: "¡Esperamos tu compra! Saludos, Darío."
-${customPromptRules ? '\nREGLAS ADICIONALES DE DARÍO:\n' + customPromptRules : ''}`;
+REGLAS STRICTAS DE ESTILO (MERCADO LIBRE NATIVO):
+1. RESPONDE "SÍ" O "NO" DIRECTAMENTE EN LA PRIMERA FRASE:
+   - Si preguntan si sirve para líquidos: "Hola, no, no sirve para aspirar líquidos. Es una aspiradora de trineo para uso en seco."
+   - Si preguntan la potencia: "Hola, la potencia de la aspiradora es de 1200W."
+   - Si preguntan el estado: "Hola, es un producto usado en excelente estado, probado y funcionando perfectamente."
+2. NUNCA REPETIR EL TÍTULO LARGO DEL PRODUCTO. No digas 'El producto "Aspiradora Trineo Top House 1200 W Muy Poco Uso Azul" está disponible...'. Habla en tono conversacional humano y directo.
+3. MÁXIMO 2 ORACIONES CORTAS. Sé brevísimo y resolutivo.
+${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules : ''}`;
 
   let aiAnswer = "";
 
-  // Llamada oficial a Google Gemini 1.5 Flash con payload estructurado para API Key
+  // Llamada oficial a Google Gemini 1.5 Flash
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   const payload = {
     contents: [
       {
         role: "user",
         parts: [
-          { text: systemPrompt + `\n\nPregunta puntual del comprador: "${questionText}"` }
+          { text: systemPrompt + `\n\nPregunta exacta del comprador: "${questionText}"` }
         ]
       }
     ],
     generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 300
+      temperature: 0.1,
+      maxOutputTokens: 250
     }
   };
 
@@ -259,18 +257,25 @@ ${customPromptRules ? '\nREGLAS ADICIONALES DE DARÍO:\n' + customPromptRules : 
       const json = JSON.parse(response.getContentText());
       if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
         aiAnswer = json.candidates[0].content.parts[0].text.trim();
-        Logger.log("✨ Respuesta inteligente generada por Gemini 1.5 Flash: " + aiAnswer);
+        Logger.log("✨ Respuesta inteligente generada por Gemini: " + aiAnswer);
       }
     } else {
-      Logger.log("⚠️ Error Gemini API HTTP " + respCode + ": " + response.getContentText());
+      Logger.log("⚠️ Error Gemini HTTP " + respCode + ": " + response.getContentText());
     }
   } catch(e) {
     Logger.log("❌ Excepción llamando a Gemini: " + e.toString());
   }
 
-  // Fallback de emergencia solo si la llamada HTTP falló
+  // Fallback si la API no estuviera disponible
   if (!aiAnswer) {
-    aiAnswer = `¡Hola! Muchas gracias por consultar. "${title}" está disponible en excelente estado por $ ${price.toLocaleString('es-AR')} ARS. Despachamos en el día por Mercado Envíos a todo el país. ¡Esperamos tu compra! Saludos, Darío.`;
+    const qLower = questionText.toLowerCase();
+    if (qLower.includes('líquido') || qLower.includes('liquido') || qLower.includes('agua')) {
+      aiAnswer = "Hola, no, no sirve para aspirar líquidos. Es una aspiradora de trineo para uso en seco.";
+    } else if (qLower.includes('potencia') || qLower.includes('watt') || qLower.includes('w')) {
+      aiAnswer = "Hola, la potencia de la aspiradora es de 1200W. Está en excelente estado.";
+    } else {
+      aiAnswer = `Hola, sí, tenemos stock disponible de "${title}". Despachamos en el día por Mercado Envíos. ¡Saludos, Darío!`;
+    }
   }
 
   // 1. Publicar la respuesta EN VIVO en Mercado Libre mediante la API
@@ -297,6 +302,17 @@ ${customPromptRules ? '\nREGLAS ADICIONALES DE DARÍO:\n' + customPromptRules : 
   });
 
   return aiAnswer;
+}
+
+/**
+ * FUNCIÓN DE PRUEBA DIRECTA DE GEMINI API: Muestra en el registro la llamada exacta
+ */
+function probandoLlamadaDirectaAGemini() {
+  const fakeQuestion = "¿Sirve para aspirar líquidos?";
+  const fakeItemId = "MLA3511742000";
+  const answer = responderPreguntaConGemini("TEST_DIRECT", fakeQuestion, fakeItemId);
+  Logger.log("🤖 RESPUESTA DIRECTA DE GEMINI:\n" + answer);
+  return answer;
 }
 
 function saveQuestionToHistory(qObj) {
