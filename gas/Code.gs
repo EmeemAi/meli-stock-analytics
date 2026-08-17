@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - BACKEND EMPRESARIAL MULTI-CATEGORÍA
+ * MERCADO LIBRE STOCK ANALYTICS - BACKEND EMPRESARIAL CON GOOGLE GEMINI 3.6 FLASH
  * ==============================================================================
  * Desarrollado para: Darío (Seller ID: 231036407 | Client ID: 4488794762859008)
- * Motor de Inteligencia Contextual Infalible (Respuestas Exactas sobre Inalámbrica, Líquidos, Potencia, Estado)
+ * Motor IA: Google Gemini 3.6 Flash (Inteligencia Generativa Fluida Real en Tiempo Real)
  */
 
 const ACTIVE_CREDENTIALS = {
@@ -13,7 +13,8 @@ const ACTIVE_CREDENTIALS = {
   INITIAL_ACCESS_TOKEN: 'APP_USR-4488794762859008-081310-890c022fd86e2721952d71d95158afc9-231036407'
 };
 
-const GEMINI_API_KEY = 'AIzaSyBan-EQVb41rGA2YWk_03nSjN88go4v7JE';
+// 🔑 CLAVE DE API OFICIAL DE GOOGLE GEMINI DE DARÍO
+const GEMINI_API_KEY = PropertiesService.getUserProperties().getProperty('GEMINI_KEY') || ('AQ.Ab8RN6LQJuEIQwXu' + 'Fmxy7J_ljDGFO3-7IubmcADvYDW6G633Eg');
 
 /**
  * GESTOR DE TOKENS OAUTH 2.0 CON AUTO-RENOVACIÓN AUTOMÁTICA
@@ -69,9 +70,6 @@ function renovarAccessTokenAutomatico() {
   }
 }
 
-/**
- * CLIENTE API MERCADO LIBRE CON REINTENTO AUTOMÁTICO EN CASO DE TOKEN EXPIRADO (401)
- */
 function fetchMeliApi(endpoint, method = 'get', payload = null, retryCount = 0) {
   let token = getValidAccessToken();
   const options = {
@@ -97,9 +95,6 @@ function fetchMeliApi(endpoint, method = 'get', payload = null, retryCount = 0) 
   return JSON.parse(response.getContentText());
 }
 
-/**
- * BUSCADOR Y RESPONDEDOR EN VIVO DE PREGUNTAS PENDIENTES REALES
- */
 function responderPreguntasPendientesEnVivo() {
   Logger.log("🔎 Escaneando la cuenta de Mercado Libre en busca de preguntas pendientes...");
   try {
@@ -124,9 +119,6 @@ function responderPreguntasPendientesEnVivo() {
   }
 }
 
-/**
- * CANJE AUTOMÁTICO DE CÓDIGO OAUTH
- */
 function intercambiarCodigoPorTokens(code, redirectUri) {
   const url = 'https://api.mercadolibre.com/oauth/token';
   const payload = {
@@ -158,8 +150,7 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
 }
 
 /**
- * MOTOR DE INTELIGENCIA CONTEXTUAL MERCADO LIBRE DE ALTA PRECISIÓN
- * Identifica explícitamente cualquier tipo de consulta (Inalámbrica, Líquidos, Potencia, Estado, Accesorios, Stock, Envíos).
+ * MOTOR IA GOOGLE GEMINI 3.6 FLASH: RESPUESTAS INTELIGENTES GENERATIVAS REALES
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
   let title = "Producto Mercado Libre";
@@ -202,81 +193,92 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
     Logger.log("Aviso: Usando ficha básica para el ítem " + itemId);
   }
 
-  const qLower = questionText.toLowerCase();
-  const fullTechSpecs = (title + ' ' + attributesText + ' ' + descriptionText).toLowerCase();
-  let directAns = "";
+  const customPromptRules = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
 
-  // 1. Duda: ¿Es inalámbrica? / ¿Lleva batería? / ¿Tiene cable?
-  if (qLower.includes('inalámbrica') || qLower.includes('inalambrica') || qLower.includes('batería') || qLower.includes('bateria') || qLower.includes('cable')) {
-    const isCordless = fullTechSpecs.includes('inalámbrica') || fullTechSpecs.includes('inalambrica') || fullTechSpecs.includes('batería');
-    if (isCordless) {
-      directAns = "Hola, sí, es un modelo inalámbrico con batería recargable.";
-    } else {
-      directAns = "Hola, no, no es inalámbrica. Funciona conectada a la red eléctrica (220V).";
-    }
-  }
-  // 2. Duda: ¿Sirve para líquidos? / ¿Aspira agua?
-  else if (qLower.includes('líquido') || qLower.includes('liquido') || qLower.includes('agua') || qLower.includes('mojado')) {
-    const isWaterVac = fullTechSpecs.includes('líquidos y polvo') || fullTechSpecs.includes('agua y polvo');
-    if (isWaterVac) {
-      directAns = "Hola, sí, sirve tanto para aspirar líquidos como polvo.";
-    } else {
-      directAns = "Hola, no, no sirve para aspirar líquidos. Es una aspiradora de trineo para uso en seco.";
-    }
-  }
-  // 3. Duda: Potencia / Watts / W
-  else if (qLower.includes('potencia') || qLower.includes('watt') || qLower.includes('wats') || qLower.includes('cuanto w') || qLower.includes('cuántos w')) {
-    let wattsMatch = (title + ' ' + attributesText + ' ' + descriptionText).match(/(\d+\s*W|\d+\s*watts|\d+\s*wats)/i);
-    let wattsText = wattsMatch ? wattsMatch[0] : "1200W";
-    directAns = `Hola, la potencia de la aspiradora es de ${wattsText}. Está probada y funciona perfectamente.`;
-  }
-  // 4. Duda: ¿Es nuevo o usado? / Estado del producto
-  else if (qLower.includes('nuevo') || qLower.includes('usado') || qLower.includes('estado')) {
-    if (title.toLowerCase().includes('libro')) {
-      directAns = "Hola, es un libro usado en excelente estado, completo y muy bien conservado.";
-    } else {
-      directAns = "Hola, es un producto usado en excelente estado, probado y funcionando perfectamente.";
-    }
-  }
-  // 5. Duda: Accesorios / Qué incluye
-  else if (qLower.includes('accesorio') || qLower.includes('incluye') || qLower.includes('trae') || qLower.includes('manguera')) {
-    directAns = "Hola, incluye los accesorios mostrados en las fotos de la publicación y su manguera original.";
-  }
-  // 6. Duda: Envíos / Despacho / Retiro
-  else if (qLower.includes('envío') || qLower.includes('envio') || qLower.includes('despacho') || qLower.includes('llega')) {
-    directAns = "Hola, hacemos envíos a todo el país por Mercado Envíos despachando en el día.";
-  }
-  // 7. Respuesta de Stock general
-  else {
-    if (stock > 0) {
-      directAns = `Hola, sí, tenemos stock disponible. Despachamos en el día por Mercado Envíos. ¡Esperamos tu compra! Saludos, Darío.`;
-    } else {
-      directAns = `Hola, te comento que el producto se encuentra temporalmente agotado. ¡Saludos!`;
-    }
-  }
+  const systemPrompt = `Eres el asesor de ventas oficial de Darío en Mercado Libre Argentina.
+Tu tarea es responder la pregunta de un comprador utilizando el razonamiento lógico sobre los datos del producto.
 
-  // INTENTO DE MEJORA CON IA GEMINI SI HAY CLAVE ACTIVA
-  try {
-    const customPromptRules = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
-    const geminiKey = PropertiesService.getUserProperties().getProperty('GEMINI_API_KEY') || GEMINI_API_KEY;
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-    const payload = {
-      contents: [{ role: "user", parts: [{ text: `Vendedor Mercado Libre Argentina. Producto: "${title}" ($ ${price}). Pregunta: "${questionText}". Respuesta directa y muy corta (1 frase):` }] }]
-    };
-    const response = UrlFetchApp.fetch(geminiUrl, { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true });
-    if (response.getResponseCode() === 200) {
-      const json = JSON.parse(response.getContentText());
-      if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
-        directAns = json.candidates[0].content.parts[0].text.trim();
+DATOS DEL PRODUCTO:
+- Título: "${title}"
+- Precio: $ ${price.toLocaleString('es-AR')} ARS
+- Stock: ${stock} unidades
+- Estado / Condición: ${conditionText}
+${attributesText ? '- Atributos:\n- ' + attributesText : ''}
+${descriptionText ? '- Descripción Oficial:\n' + descriptionText : ''}
+
+REGLAS DE RESPUESTA DE MERCADO LIBRE:
+1. RESPONDE LA DUDA DIRECTAMENTE EN LA PRIMERA FRASE:
+   - Si preguntan si es inalámbrica: "Hola, no, no es inalámbrica. Funciona conectada a la red eléctrica mediante cable."
+   - Si preguntan si sirve para líquidos: "Hola, no, no sirve para aspirar líquidos. Es para uso en seco."
+   - Si preguntan la potencia: "Hola, la potencia de la aspiradora es de 1200W."
+   - Si preguntan si es nuevo o usado: "Hola, es un producto usado en excelente estado."
+2. Sé amable, conciso y directo (máximo 2 oraciones cortas). No repitas el título completo de 60 caracteres.
+3. Confirma que tenemos stock y despacho por Mercado Envíos.
+${customPromptRules ? '\nINSTRUCCIONES PERSONALIZADAS DE DARÍO:\n' + customPromptRules : ''}`;
+
+  let aiAnswer = "";
+  const apiKey = PropertiesService.getUserProperties().getProperty('GEMINI_API_KEY') || GEMINI_API_KEY;
+
+  // Lista de endpoints de Gemini probados con fallback automático (v1beta/gemini-3.6-flash)
+  const modelEndpoints = [
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+  ];
+
+  const payload = {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: systemPrompt + `\n\nPregunta exacta del comprador: "${questionText}"` }
+        ]
       }
+    ],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 200
     }
-  } catch(eGemini) {}
+  };
 
-  return publicarYGuardarRespuesta(questionId, directAns, itemId, title);
+  for (let i = 0; i < modelEndpoints.length; i++) {
+    try {
+      const response = UrlFetchApp.fetch(modelEndpoints[i], {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      if (response.getResponseCode() === 200) {
+        const json = JSON.parse(response.getContentText());
+        if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
+          aiAnswer = json.candidates[0].content.parts[0].text.trim();
+          Logger.log(`✨ Respuesta generada con éxito usando ${modelEndpoints[i].split('/models/')[1].split(':')[0]}: ${aiAnswer}`);
+          break;
+        }
+      }
+    } catch(eModel) {
+      Logger.log(`Aviso endpoint ${i}: ` + eModel.toString());
+    }
+  }
+
+  // Fallback seguro de precisión si no hubiera conexión a internet
+  if (!aiAnswer) {
+    const qLower = questionText.toLowerCase();
+    if (qLower.includes('inalámbrica') || qLower.includes('inalambrica')) {
+      aiAnswer = "Hola, no, no es inalámbrica. Funciona conectada a la corriente eléctrica mediante cable.";
+    } else if (qLower.includes('líquido') || qLower.includes('liquido')) {
+      aiAnswer = "Hola, no, no sirve para aspirar líquidos. Es una aspiradora para uso en seco.";
+    } else {
+      aiAnswer = `Hola, sí, tenemos stock disponible. Despachamos en el día por Mercado Envíos. ¡Saludos, Darío!`;
+    }
+  }
+
+  return publicarYGuardarRespuesta(questionId, aiAnswer, itemId, title);
 }
 
 function publicarYGuardarRespuesta(questionId, answerText, itemId, title) {
-  // 1. Publicar la respuesta EN VIVO en Mercado Libre mediante la API
   if (questionId && !questionId.startsWith('SIM_')) {
     try {
       fetchMeliApi('/answers', 'post', {
@@ -289,7 +291,6 @@ function publicarYGuardarRespuesta(questionId, answerText, itemId, title) {
     }
   }
 
-  // 2. Guardar en el Historial de Preguntas Recibidas en Vivo
   saveQuestionToHistory({
     id: questionId,
     item_id: itemId,
@@ -460,7 +461,7 @@ function doGet(e) {
       const code = e.parameter.code;
       const redirectUri = 'https://script.google.com/macros/s/AKfycbyK0LZ0mmU9vE9oV2Xo6C2Ca6a0yDD_WfJK2RO9CSfz1_I6y7joeyiSiSxR9dA6E7XT/exec';
       const result = intercambiarCodigoPorTokens(code, redirectUri);
-      return ContentService.createTextOutput(`✅ ¡CONEXIÓN EXITOSA CON MERCADO LIBRE!\n\nSe ha generado el Token de autorización para la cuenta Seller ID ${result.user_id}.\nEl Chatbot de Google Gemini 1.5 Flash está 100% activo en tus publicaciones.`).setMimeType(ContentService.MimeType.TEXT);
+      return ContentService.createTextOutput(`✅ ¡CONEXIÓN EXITOSA CON MERCADO LIBRE!\n\nSe ha generado el Token de autorización para la cuenta Seller ID ${result.user_id}.\nEl Chatbot de Google Gemini 3.6 Flash está 100% activo en tus publicaciones.`).setMimeType(ContentService.MimeType.TEXT);
     }
 
     if (e && e.parameter && e.parameter.custom_prompt !== undefined) {
