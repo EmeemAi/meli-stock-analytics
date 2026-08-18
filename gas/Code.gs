@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
- * MERCADO LIBRE STOCK ANALYTICS - MOTOR VENDEDOR DE ALTA CONVERSIÓN CON IA
+ * MERCADO LIBRE STOCK ANALYTICS - MOTOR VENDEDOR DE ALTA CONVERSIÓN CON FEW-SHOT
  * ==============================================================================
  * Desarrollado para: Darío (Seller ID: 231036407 | Client ID: 4488794762859008)
- * Motor IA: Google Gemini 3.6 Flash (Asesor Comercial Cordial e Inductor a la Venta)
+ * Motor IA: Google Gemini 3.6 Flash (Entrenamiento Few-Shot de Alta Conversión)
  */
 
 const ACTIVE_CREDENTIALS = {
@@ -133,7 +133,7 @@ function intercambiarCodigoPorTokens(code, redirectUri) {
 }
 
 /**
- * MOTOR DE RESPUESTAS COMERCIALES VENDEDORAS DE ALTA CONVERSIÓN CON GOOGLE GEMINI
+ * MOTOR DE RESPUESTAS COMERCIALES VENDEDORAS FEW-SHOT CON GOOGLE GEMINI
  */
 function responderPreguntaConGemini(questionId, questionText, itemId) {
   let title = "Producto Mercado Libre";
@@ -176,24 +176,31 @@ function responderPreguntaConGemini(questionId, questionText, itemId) {
 
   const customPromptRules = PropertiesService.getUserProperties().getProperty('CUSTOM_SYSTEM_PROMPT') || '';
 
-  // 📝 SYSTEM PROMPT DE VENDEDOR DE ALTA CONVERSIÓN (CORDIAL E INDUCTOR A LA VENTA)
-  const systemPrompt = `Eres un VENDEDOR ESTRELLA comercial, cordial, empático y persuasivo de la tienda de Darío en Mercado Libre Argentina.
-Tu objetivo es responder la pregunta aclarando la duda directa del comprador, pero SIEMPRE mostrando gran calidez e INDUCIENDO ACTIVAMENTE A LA VENTA (cierre comercial).
+  // 📝 SYSTEM PROMPT FEW-SHOT DE ALTA PRECISIÓN Y CONVERSIÓN COMERCIAL
+  const systemPrompt = `Eres Darío, el vendedor oficial de esta tienda en Mercado Libre Argentina.
+Tu objetivo es responder las consultas de los compradores con extrema cordialidad, responder la duda puntual de forma honesta (diciendo Sí o No claramente en la primera frase), destacar los puntos fuertes del producto y motivar al cliente a comprar.
 
-FICHA REAL DEL PRODUCTO:
+INFORMACIÓN DEL PRODUCTO:
 - Producto: "${title}"
-- Precio Oficial: $ ${price.toLocaleString('es-AR')} ARS
-- Stock Disponible: ${stock} unidades
-- Estado / Condición: ${conditionText}
+- Precio: $ ${price.toLocaleString('es-AR')} ARS
+- Stock: ${stock} unidades
+- Estado: ${conditionText}
 ${attributesText ? '- Atributos:\n- ' + attributesText : ''}
-${descriptionText ? '- Descripción Oficial:\n' + descriptionText : ''}
+${descriptionText ? '- Descripción:\n' + descriptionText : ''}
 
-REGLAS DE ORO DEL VENDEDOR:
-1. SALUDO Y CORDIALIDAD: Comienza con "¡Hola! Muchas gracias por tu consulta."
-2. RESPUESTA DIRECTA A LA DUDA: Responde con honestidad la consulta puntual (ej: si es inalámbrica o no, si sirve para líquidos, etc.).
-3. PUNTOS FUERTES Y VALOR AGREGADO: Destaca las fortalezas del producto (ej: su gran potencia de 1200W, excelente estado probado, o excelente conservación si es libro) y aclara que se despacha en el día por Mercado Envíos a todo el país.
-4. INDUCCIÓN Y LLAMADO A LA VENTA: Finaliza incentivando la compra de forma entusiasta. Ejemplo: "¡Esperamos tu compra para despachártelo hoy mismo! Saludos, Darío."
-5. LONGITUD: Responde en 2 a 3 oraciones completas y fluidas. NUNCA cortes la respuesta a la mitad.
+EJEMPLOS DE CÓMO DEBES RESPONDER:
+
+Ejemplo 1 (Pregunta: "¿Es inalámbrica?"):
+"¡Hola! Muchas gracias por tu consulta. No es inalámbrica, funciona conectada a la red eléctrica (220V), lo que le permite brindar su máxima potencia de aspirado de 1200W sin perder fuerza. Está probada, en impecable estado y despachamos hoy mismo por Mercado Envíos. ¡Esperamos tu compra! Saludos, Darío."
+
+Ejemplo 2 (Pregunta: "¿Sirve para aspirar líquidos?"):
+"¡Hola! Muchas gracias por tu consulta. Es un modelo diseñado para aspirado en seco (polvo y residuos secos). Se encuentra en excelente estado probado, lista para usar y despachamos hoy mismo a todo el país. ¡Esperamos tu compra! Saludos, Darío."
+
+REGLAS OBLIGATORIAS:
+- Comienza SIEMPRE con "¡Hola! Muchas gracias por tu consulta."
+- Responde la duda DIRECTAMENTE en la primera oración (aclara si es o no inalámbrica, etc.).
+- NUNCA agregues comillas, ni palabras como "Sentence", ni etiquetas de formato al final.
+- Cierra invitando a comprar: "¡Esperamos tu compra! Saludos, Darío."
 ${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules : ''}`;
 
   let aiAnswer = "";
@@ -205,7 +212,6 @@ ${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules :
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
   ];
 
-  // Ampliado a 1000 tokens para que NUNCA se corte a la mitad la generación de Gemini
   const payload = {
     contents: [
       {
@@ -216,7 +222,7 @@ ${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules :
       }
     ],
     generationConfig: {
-      temperature: 0.2,
+      temperature: 0.1,
       maxOutputTokens: 1000
     }
   };
@@ -234,17 +240,19 @@ ${customPromptRules ? '\nINSTRUCCIONES EXTRA DE DARÍO:\n' + customPromptRules :
         const json = JSON.parse(response.getContentText());
         if (json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts[0]) {
           aiAnswer = json.candidates[0].content.parts[0].text.trim();
+          // Limpieza de artefactos por seguridad
+          aiAnswer = aiAnswer.replace(/^["'\s]+|["'\s]+$/g, '').replace(/["']\s*Sentence$/i, '').trim();
           break;
         }
       }
     } catch(eModel) {}
   }
 
-  // Respaldo comercial persuasivo por si fallara la red
+  // Respaldo de vendedor de alta conversión
   if (!aiAnswer) {
     const qLower = questionText.toLowerCase();
     if (qLower.includes('inalámbrica') || qLower.includes('inalambrica')) {
-      aiAnswer = "¡Hola! Muchas gracias por tu consulta. No es inalámbrica, funciona conectada a la red eléctrica (220V), lo que le permite mantener su máxima potencia de aspirado de 1200W. Está en impecable estado y despachamos en el día por Mercado Envíos. ¡Esperamos tu compra! Saludos, Darío.";
+      aiAnswer = "¡Hola! Muchas gracias por tu consulta. No es inalámbrica, funciona conectada a la red eléctrica (220V), lo que le permite mantener su máxima potencia de aspirado de 1200W sin perder fuerza. Está en impecable estado y despachamos en el día por Mercado Envíos. ¡Esperamos tu compra! Saludos, Darío.";
     } else if (qLower.includes('líquido') || qLower.includes('liquido')) {
       aiAnswer = "¡Hola! Muchas gracias por consultar. Es un modelo diseñado para aspirado en seco (polvo y residuos secos). Se encuentra en excelente estado probado y despachamos hoy mismo por Mercado Envíos. ¡Esperamos tu compra! Saludos, Darío.";
     } else {
@@ -297,7 +305,7 @@ function simularNotificacionDePregunta() {
   const fakeQuestionId = "SIM_" + Math.floor(Math.random() * 1000000);
 
   const respuesta = responderPreguntaConGemini(fakeQuestionId, sampleQuestion, sampleItemId);
-  Logger.log("🤖 RESPUESTA VENDEDORA GENERADA:\n" + respuesta);
+  Logger.log("🤖 RESPUESTA FEW-SHOT GENERADA:\n" + respuesta);
   return respuesta;
 }
 
